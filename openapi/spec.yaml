@@ -1,0 +1,690 @@
+openapi: 3.0.0
+info:
+  title: DICT API
+  version: '1.RC0'
+  description: |- 
+    O Diretório de Identificadores de Contas Transacionais - DICT - é o serviço do arranjo SPI que permite 
+    buscar detalhes de contas transacionais  com chaves de endereçamento mais convenientes para quem faz 
+    um pagamento. Entre os tipos de chave atualmente disponíveis estão CPF, CNPJ, telefone e e-mail. 
+    As informações retornadas pelo DICT permitem ao pagador confirmar a identidade do recebedor, proporcionando 
+    uma experiência mais fácil e segura. Permitem também ao PSP do pagador criar a mensagem de instrução de 
+    pagamento a ser enviada para o sistema de liquidação com os detalhes de conta do recebedor.
+  
+    # Segurança
+    ## Autenticação 
+    O DICT utiliza autenticação mútua TLS.
+
+    As definições de autenticação para essa API estão especificados no 
+    [manual de segurança do PI](https://www.bcb.gov.br/content/estabilidadefinanceira/forumpireunioes/Manual%20de%20Seguranca%20PI%20-%20versão%201.0.pdf)
+   
+    ## Assinatura digital
+    Requisições que incluam ou alterem informações no DICT devem ser assinadas com 
+    [XML Digital Signature](https://www.w3.org/2000/09/xmldsig) pelo participante que envia a requisição.
+    Requisições de consulta não precisam ser assinadas. Respostas retornadas pelo DICT serão assinadas digitalmente. 
+    As assinaturas **devem** ser validadas pelos clientes da API.
+
+    A assinatura será colocada no elemento `Signature` das requisições e respostas. 
+    O `Signature` será [envelopado](https://www.w3.org/TR/xmldsig-core1/#def-SignatureEnveloped) pelo XML que está 
+    sendo assinado (assinatura é um elemento filho).
+
+    Para mais detalhes sobre a forma de construir a assinatura, consulte o
+    [manual de segurança do PI](https://www.bcb.gov.br/content/estabilidadefinanceira/forumpireunioes/Manual%20de%20Seguranca%20PI%20-%20versão%201.0.pdf).
+
+    ## Limitação de requisições
+    
+    Para previnir ataques de enumeração, há mecanismo de limitação da quantidade de consultas que podem ser feitas 
+    num espaço de tempo (_rate-limiting_). 
+    A limitação atua em dois níveis, para usuários individuais e para um participante como um todo.
+
+    Para cada um desses níveis, há limite para o número de consultas que não resultam em pagamento.
+
+    Quando algum desses limites for atingido, o serviço retornará status `429`, especificando a causa.
+    Cabeçalhos indicando os parâmetros de _rate-limiting_ serão retornados nas requisições. Ver, por exemplo,
+    os cabeçalhos retornados ao [consultar vínculo](#operation/getEntry).
+
+    # Evolução da API
+
+    As seguintes mudanças são esperadas e consideradas retro-compatíveis (_backwards-compatibility_):
+
+    - Adição de novos recursos na API.
+    - Adição de novos parâmetros opcionais a requisições.
+    - Adição de novos campos em respostas da API.
+    - Alteração da ordem de campos.
+    - Adição de novos elementos em enumerações
+
+    Mudanças compatíveis não geram nova versão da API. 
+    Clientes devem estar preparados para lidar com essas mudanças sem quebrar.
+
+    Mudanças incompatíveis geram nova versão da API.
+
+    # Tratamento de erros
+
+    O DICT retorna códigos de status HTTP para indicar sucesso ou falhas das requisições. 
+    Códigos 2xx indicam sucesso. Códigos 4xx indicam falhas causadas pelas informações 
+    enviadas pelo cliente ou pelo estado atual das entidades. Códigos 5xx indicam problemas 
+    no serviço no lado do DICT.
+
+    As respostas de erro incluem no corpo detalhes do erro seguindo o schema da RFC 
+    [Problem Details for HTTP APIs](https://tools.ietf.org/html/rfc7807).    
+    O campo `type` identifica o tipo de erro e no DICT segue o padrão: 
+    `https://dict.pi.rsfn.net.br/api/v1/error/<TipoErro>`
+
+    Abaixo estão listados os tipos de erro do DICT.
+
+
+    **Gerais**
+
+    - `Forbidden`
+      - Requisição de participante autenticado que viola alguma regra de autorização. 
+        Ver [rfc7231](https://tools.ietf.org/html/rfc7231#section-6.5.3).
+
+    - `BadRequest`
+      -  Requisição com formato inválido.
+        Ver [rfc7231](https://tools.ietf.org/html/rfc7231#section-6.5.1)
+
+    - `NotFound`
+      - Entidade não encontrada. 
+        Ver [rfc7231](https://tools.ietf.org/html/rfc7231#section-6.5.4)
+
+    - `RateLimited`
+      - Limite de requisições foi atingido. 
+        Ver seção sobre [limitação de requisições](#section/Seguranca/Limitacao-de-requisicoes)
+
+    - `ServiceUnavailable`
+      - Serviço não está disponível no momento. Serviço solicitado pode estar em manutenção ou fora
+        da janela de funcionamento.
+
+    - `RequestSignatureInvalid`
+      - Assinatura digital da requisição enviada é inválida.
+
+    - `RequestOnBehalfUnauthorized`
+      - Participante direto envia requisição em nome de participante indireto para o qual não tem autorização.
+
+
+    **Vínculos**
+    
+    - `EntryInvalid`
+      - Existem campos inválidos ao tentar criar novo vínculo.
+
+    - `EntryLimitExceededForOwner`
+      - Dono atingiu limite máximo de vínculos que ele pode ter.
+
+    - `EntryAlreadyExists`
+      - Já existe vínculo para essa chave com o mesmo participante e dono.
+
+    - `EntryKeyOwnedByDifferentPerson`
+      - Já existe vínculo para essa chave mas ela é possuída por outra pessoa.
+        Indica-se que seja feita uma reivindicação de posse.
+
+    - `EntryKeyInCustodyOfDifferentParticipant`
+      - Já existe vínculo para essa chave com o mesmo dono, mas ela encontra-se associada
+        a outro participante. Indica-se que seja feita uma reivindicação de portabilidade.
+
+servers:
+  - url: https://dict.pi.rsfn.net.br/api/v1/
+    description: Servidor de Produção
+  - url: https://dict-h.pi.rsfn.net.br/api/v1/
+    description: Servidor de Homologação
+tags:
+  - name: Directory
+    x-displayName: Diretório
+    description: |- 
+      O diretório de identificadores de contas transacionais é um conjunto de vínculos.
+      Um vínculo é uma associação entre uma chave de endereçamento, uma conta transacional e seu dono.
+      O dono pode ser uma pessoa física ou uma pessoa jurídica. A chave de endereçamento é usada identificar um vínculo.
+      
+      Os tipos de chave suportadas atualmente são:
+      - CPF
+        - Regex: ^\[0-9\]{11}$
+        - Exemplo: 12345678901
+      - CNPJ
+        - Regex: ^\[0-9\]{14}$
+        - Exemplo: 12345678901234
+      - Telefone
+        - Regex: ^\\+\[1-9\]\[0-9\]\d{1,14}$
+        - Exemplo: +5510998765432
+      - E-mail
+        - E-mail deve possuir no máximo 72 caracteres e deve ser em minúsculo. 
+        Será validado adicionalmente com a regex definida na especificação W3C HTML5 para 
+        [e-mails válidos](https://html.spec.whatwg.org/multipage/input.html#valid-e-mail-address).
+          
+      Novos tipos de chave poderão vir a ser adicionados no futuro. Logo, é importante que a implementação de clientes
+      seja flexível, permitindo a adição de novos tipos de chave.
+paths:
+  '/entries/':
+    post:
+      summary: Criar Vínculo
+      description: |- 
+          Cria um novo vínculo de chave com conta.
+      operationId: createEntry
+      tags:
+        - Directory
+      requestBody:
+        content: 
+          application/xml:
+            schema:
+              $ref: '#/components/schemas/CreateEntryRequest'
+            examples:
+                phone:
+                  value: |-
+                    <?xml version="1.0" encoding="UTF-8"?>
+                    <CreateEntryRequest>
+                      <Signature></Signature>
+                      <Entry>
+                        <Key>+5561988887777</Key>
+                        <KeyType>PHONE</KeyType>
+                        <Account>
+                          <Participant>12345678</Participant>
+                          <Branch>00001</Branch>
+                          <AccountNumber>0007654321</AccountNumber>
+                          <AccountType>CACC</AccountType>
+                        </Account>
+                        <Owner>
+                          <Type>NATURAL_PERSON</Type>
+                          <TaxIdNumber>11122233300</TaxIdNumber>
+                          <Name>João Silva</Name>
+                        </Owner>
+                      </Entry>
+                    </CreateEntryRequest>
+      responses:
+        '201':
+          description: Created
+          content:
+            application/xml:           
+              schema:
+                $ref: '#/components/schemas/CreateEntryResponse'                                
+              examples:
+                example:
+                  value: |-
+                    <?xml version="1.0" encoding="UTF-8"?>
+                    <CreateEntryResponse>
+                      <Signature></Signature>
+                      <Entry>
+                        <Key>11122233300</Key>
+                        <KeyType>CPF</KeyType>
+                        <Account>
+                          <Participant>12345678</Participant>
+                          <Branch>00001</Branch>
+                          <AccountNumber>0007654321</AccountNumber>
+                          <AccountType>CACC</AccountType>
+                        </Account>
+                        <Owner>
+                          <Type>NATURAL_PERSON</Type>
+                          <TaxIdNumber>11122233300</TaxIdNumber>
+                          <Name>João Silva</Name>
+                        </Owner>
+                        <CreationDate>2019-11-18</CreationDate>
+                        <KeyOwnershipDate>2019-11-18</KeyOwnershipDate>
+                      </Entry>
+                    </CreateEntryResponse>
+        '400':
+          $ref: "#/components/responses/EntryInvalid"
+        '403': 
+          $ref: "#/components/responses/Forbidden"
+        '503':
+          $ref: "#/components/responses/ServiceUnavailable"
+
+  '/entries/{Key}':
+    parameters:
+      - schema:
+          $ref: "#/components/schemas/Key"
+        name: Key
+        in: path
+        required: true  
+    get:
+      summary: Consultar vínculo
+      tags:
+        - Directory
+      description: |-
+        Obtém um vínculo contendo os detalhes de conta transacional associados a uma chave de endereçamento.
+        
+
+        ### Limitação de requisições
+        A política de limitação (_rate-limiting_) funciona com base em cabeçalhos enviados na requisição.
+
+        O parâmetro `PI-PayerId` é o identificador pseudonimizado do cliente final, vinculado a um participante. 
+        Requisições vindas de um mesmo cliente, para um mesmo participante, devem usar o mesmo identificador. 
+        Como sugestão de implementação, pode ser utilizado o valor hexadecimal da aplicação de 
+        [HMAC-SHA-256](https://tools.ietf.org/html/rfc4634#section-7) a um identificador do cliente, 
+        com chave de conhecimento restrito ao participante.
+
+      operationId: getEntry
+      parameters:
+        - schema:
+            type: string
+            pattern: '^[0-9]{8}'
+            example: '12345678'            
+          in: header
+          name: PI-PayerAccountServicer
+          description: 'Identificador SPB do participante onde o pagador possui conta. Usado para _rate-limiting_.'
+          required: true
+        - schema:
+            type: string
+            pattern: '[0-9a-z]{64}'
+          in: header
+          name: PI-PayerId
+          description: 'Identificador pseudonimizado do pagador que originou a requisição. Usado para _rate-limiting_.'
+          required: true
+        - schema:
+            type: string
+          in: header
+          name: PI-EndToEndId
+          description: 'Identificador fim-a-fim do pagamento associado a essa requisição. Corresponde ao campo `EndToEndId` na mensagem pacs.008. Usado para _rate-limiting_.'
+          required: true
+      responses:      
+        '200':
+          description: OK
+          headers:
+            PI-RateLimit-ClientRemaining:
+              description: Número de requisições disponíveis para que limite associado ao `PI-PayerId` seja atingido.
+              schema:
+                type: integer
+              example: 100
+            PI-RateLimit-ClientReset:
+              description: Segundos até que limite associado ao `PI-PayerId` seja renovado.
+              schema:
+                type: integer
+              example: 30
+            PI-RateLimit-ParticipantRemaining:
+              description: Número de requisições disponíveis para que limite associado ao `PI-PayerAccountServicer` seja atingido.
+              schema:
+                type: integer
+              example: 100
+            PI-RateLimit-ParticipantReset:
+              description: Segundos até que limite associado ao `PI-PayerAccountServicer` seja renovado.
+              schema:
+                type: integer
+              example: 30
+          content:
+            application/xml:           
+              schema:
+                $ref: '#/components/schemas/GetEntryResponse'                                
+              examples:
+                natural-person:
+                  value: |-
+                    <?xml version="1.0" encoding="UTF-8"?>
+                    <GetEntryResponse>
+                      <Signature></Signature>
+                      <Entry>
+                        <Key>11122233300</Key>
+                        <KeyType>CPF</KeyType>
+                        <Account>
+                          <Participant>12345678</Participant>
+                          <Branch>00001</Branch>
+                          <AccountNumber>0007654321</AccountNumber>
+                          <AccountType>CACC</AccountType>
+                        </Account>
+                        <Owner>
+                          <Type>NATURAL_PERSON</Type>
+                          <TaxIdNumber>11122233300</TaxIdNumber>
+                          <Name>João Silva</Name>
+                        </Owner>
+                        <CreationDate>2019-11-18</CreationDate>
+                        <KeyOwnershipDate>2019-11-18</KeyOwnershipDate>
+                      </Entry>
+                    </GetEntryResponse>
+        '404':
+          $ref: "#/components/responses/NotFound"
+        '429':
+          $ref: "#/components/responses/RateLimited"
+  '/entries/{Key}/delete':
+    parameters:
+      - schema:
+          $ref: "#/components/schemas/Key"
+        name: Key
+        in: path
+        required: true  
+    post:
+      summary: Remover Vínculo
+      operationId: deleteEntry
+      description: Remove um vínculo de chave com conta.
+      tags:
+        - Directory
+      requestBody:
+        content: 
+          application/xml:
+            schema:
+              $ref: '#/components/schemas/DeleteEntryRequest'
+            examples:
+              example:
+                value: |-
+                  <?xml version="1.0" encoding="UTF-8"?>
+                  <DeleteEntryRequest>
+                    <Signature></Signature>
+                    <Key>+5561988887777</Key>
+                  </DeleteEntryRequest>
+      responses:
+        '204':
+          description: No Content
+        '403':
+          $ref: "#/components/responses/Forbidden"
+        '404':
+          $ref: "#/components/responses/NotFound"
+        '503':
+          $ref: "#/components/responses/ServiceUnavailable"
+components:
+  schemas:
+    AccountType:
+      enum:
+      - CACC
+      - SLRY
+      - SVGS
+      description: Tipo de conta, conforme dicionário de domínio para a mensagem pacs.008 do SPI.
+      example: CACC
+      pattern: '[A-Z]{4}'
+    BrazilianAccount:
+      type: object
+      description: Dados de conta transacional no Brasil.
+      properties:
+        Participant:
+          allOf:
+           - $ref: '#/components/schemas/ISPB'
+           - description: "Identificador SPB do provedor da conta"
+        Branch:
+          type: string
+          description: Agência, sem dígito verificador.
+          pattern: '^[0-9]{4}'
+          example: '00001'
+        AccountNumber:
+          type: string
+          description: 'Número de conta, incluindo verificador. Se verificador for letra, substituir por 0.'
+          pattern: '[0-9]{4,10}'
+          example: '0007654321'
+        AccountType:
+          $ref: '#/components/schemas/AccountType'
+      required:
+        - Participant
+        - Branch
+        - AccountNumber
+        - AccountType
+    Key:
+      type: string
+      description: Chave de endereçamento 
+      maxLength: 72
+      example: '12345678901'      
+    KeyType:
+      type: string
+      description: Tipo de chave. _Novos tipos podem surgir_.
+      enum:
+        - CPF
+        - CNPJ
+        - PHONE
+        - EMAIL
+      example: CPF
+    NaturalPerson:
+      type: object
+      properties:
+        Type:
+          type: string          
+          default: NATURAL_PERSON
+        TaxIdNumber:
+          type: string 
+          description: CPF - Cadastro de Pessoa Física
+          pattern: '[0-9]{11}'
+          example: '11122233300'
+        Name:
+          type: string 
+          description: Nome completo
+          example: João Silva
+          maxLength: 100
+      required:
+        - Type      
+        - TaxIdNumber
+        - Name
+    LegalPerson:
+      type: object    
+      properties:
+        Type:
+          type: string 
+          default: LEGAL_PERSON
+        TaxIdNumber:
+          type: string 
+          description: CNPJ - Cadastro Nacional de Pessoa Jurídica
+          example: '11222333000150'
+          pattern: '[0-9]{14}'
+        Name:
+          type: string 
+          description: Razão social
+          maxLength: 100
+          example: Padaria Tres Irmãos Ltda
+        TradeName:
+          type: string 
+          description: Nome fantasia
+          maxLength: 100
+          example: Padaria 3 Irmãos
+      required:
+        - Type
+        - TaxIdNumber
+        - Name
+    ISPB:
+      type: string
+      pattern: '^[0-9]{8}'
+      example: '12345678'
+    Entry:
+      type: object
+      description: Vínculo entre uma chave de endereçamento, conta transacional e seu dono.
+      properties:
+        Key:
+          $ref: '#/components/schemas/Key'
+        KeyType:
+          $ref: '#/components/schemas/KeyType'
+        Account:
+          $ref: '#/components/schemas/BrazilianAccount'
+        Owner:
+          oneOf:
+            - $ref: '#/components/schemas/NaturalPerson'
+            - $ref: '#/components/schemas/LegalPerson'
+          discriminator:
+              propertyName: Type
+              mapping:
+                NATURAL_PERSON: '#/components/schemas/NaturalPerson'
+                LEGAL_PERSON: '#/components/schemas/LegalPerson'
+      required:
+        - Key
+        - KeyType
+        - Account
+        - Owner
+    ExtendedEntry:
+      allOf:
+        - $ref: '#/components/schemas/Entry'
+        - type: object
+          xml:
+            name: Entry
+          properties:
+            CreationDate:
+              type: string
+              format: date
+              description: Data de criação do vínculo.
+            KeyOwnershipDate:
+              type: string
+              format: date
+              description: |- 
+                Data a partir da qual o dono tem posse ininterrupta da chave de endereçamento. 
+                Posse da chave aqui é definida pela existência de um vínculo associando a chave ao dono, 
+                possivelmente com contas distintas.
+          required:
+            - CreationDate
+            - KeyOwnershipDate
+    SignedObject:
+      type: object
+      properties:
+        Signature:
+          type: object
+          xml:
+            prefix: ds
+            namespace: 'http://www.w3.org/2000/09/xmldsig#'
+    CreateEntryRequest:
+      allOf:
+        - $ref: '#/components/schemas/SignedObject'
+        - type: object
+          properties:           
+            Entry:
+              $ref: '#/components/schemas/Entry'
+    CreateEntryResponse:
+      allOf:
+        - $ref: '#/components/schemas/SignedObject'
+        - type: object
+          properties:           
+            Entry:
+              $ref: '#/components/schemas/ExtendedEntry'
+    DeleteEntryRequest:
+      allOf:
+        - $ref: '#/components/schemas/SignedObject'
+        - type: object
+          properties:           
+            Key:
+              $ref: "#/components/schemas/Key"
+    GetEntryResponse:
+      allOf:
+        - $ref: '#/components/schemas/SignedObject'
+        - type: object
+          properties:           
+            Entry:
+              $ref: '#/components/schemas/ExtendedEntry'
+    Problem:
+      type: object
+      xml:
+        name: 'problem'
+        namespace: 'urn:ietf:rfc:7807'
+      properties:
+        type:
+          type: string
+          format: uri
+          example: 'https://dict.pi.rsfn.net.br/api/v1/error/NotFound'
+        title:
+          type: string
+          example: 'Not found'
+        status:
+          type: integer
+          example: 404
+        detail:
+          type: string
+        violations:
+          type: array
+          items:
+            $ref: '#/components/schemas/Violation'
+      required:
+        - type
+        - title
+        - status
+    Violation:
+      type: object
+      xml:
+        name: violation
+      properties:
+        reason:
+          type: string
+        value:
+          type: string
+        property:
+          type: string
+      required:
+        - reason
+  responses:
+    NotFound:
+      description: Not found
+      content:
+        application/problem+xml:
+          schema:
+            $ref: '#/components/schemas/Problem'
+          examples:
+            example:
+              value: |-
+                <?xml version="1.0" encoding="UTF-8"?>
+                <problem xmlns="urn:ietf:rfc:7807">
+                  <type>https://dict.pi.rsfn.net.br/api/v1/error/NotFound</type>
+                  <title>Not found</title>
+                  <status>404</status>
+                  <detail>Entry associated with given key does not exist</detail>
+                </problem> 
+    Forbidden:
+      description: Forbidden
+      content:
+        application/problem+xml:
+          schema:
+            $ref: '#/components/schemas/Problem'
+          examples:
+            example:
+              value: |-
+                <?xml version="1.0" encoding="UTF-8"?>
+                <problem xmlns="urn:ietf:rfc:7807">
+                  <type>https://dict.pi.rsfn.net.br/api/v1/error/Forbidden</type>
+                  <title>Forbidden</title>
+                  <status>403</status>
+                  <detail>Participant is not allowed to access this resource</detail>
+                </problem>
+    RateLimited:
+      description: Rate-Limited
+      content:
+        application/problem+xml:
+          schema:
+            $ref: '#/components/schemas/Problem'
+          examples:
+            example:
+              value: |-
+                <?xml version="1.0" encoding="UTF-8"?>
+                <problem xmlns="urn:ietf:rfc:7807">
+                  <type>https://dict.pi.rsfn.net.br/api/v1/error/RateLimited</type>
+                  <title>Rate limited</title>
+                  <status>429</status>
+                </problem>
+    ServiceUnavailable:
+      description: Service Unavailable
+      headers:
+        Retry-After:
+          schema:
+            type: integer
+          description: Tempo de espera em segundos sugerido para nova requisição. Ver [rfc7231#section-7.1.3](https://tools.ietf.org/html/rfc7231#section-7.1.3)
+      content:
+        application/problem+xml:
+          schema:
+            $ref: '#/components/schemas/Problem'
+          examples:
+            example:
+              value: |-
+                <?xml version="1.0" encoding="UTF-8"?>
+                <problem xmlns="urn:ietf:rfc:7807">
+                  <type>https://dict.pi.rsfn.net.br/api/v1/error/ServiceUnavailable</type>
+                  <title>Service Unavailable</title>
+                  <status>503</status>
+                  <detail>Service is under scheduled maintenance</detail>
+                </problem>
+    EntryInvalid:
+      description: Entry Invalid
+      content:
+        application/problem+xml:
+          schema:
+            $ref: '#/components/schemas/Problem'
+          examples:
+            example:
+              value: |-
+                <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+                <problem xmlns="urn:ietf:rfc:7807">
+                    <type>https://dict.pi.rsfn.net.br/api/v1/error/EntryInvalid</type>
+                    <title>Entry is invalid</title>
+                    <status>400</status>
+                    <detail>Entry has invalid fields</detail>
+                    <violations>
+                        <violation>
+                            <reason>Value does not match regex '^\+[1-9]\d{1,14}$'</reason>
+                            <value>61988887777</value>
+                            <property>entry.key</property>
+                        </violation>
+                    </violations>                    
+                </problem>
+    BadRequest:
+      description: Bad Request
+      content:
+        application/problem+xml:
+          schema:
+            $ref: '#/components/schemas/Problem'
+          examples:
+            example:
+              value: |-
+                <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+                <problem xmlns="urn:ietf:rfc:7807">
+                    <type>https://dict.pi.rsfn.net.br/api/v1/error/BadRequest</type>
+                    <title>Bad Request</title>
+                    <status>400</status>
+                    <detail>Could not parse request body</detail>
+                </problem>
