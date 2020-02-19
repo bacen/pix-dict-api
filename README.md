@@ -1,6 +1,6 @@
 ## *DICT - API*
 
-Bem vindo à especificação da API do DICT, o Diretório de Identificadores de Contas 
+Bem-vindo à especificação da API do DICT, o Diretório de Identificadores de Contas 
 Transacionais do PIX (Sistema de Pagamentos Instantâneos do Banco Central do Brasil). 
 O público-alvo são profissionais de TI dos Prestadores de Serviços de Pagamentos (PSP). 
 
