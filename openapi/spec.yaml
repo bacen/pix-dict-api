@@ -512,7 +512,7 @@ components:
           required:
             - CreationDate
             - KeyOwnershipDate
-    SignedObject:
+    CreateEntryRequest:
       type: object
       properties:
         Signature:
@@ -520,34 +520,46 @@ components:
           xml:
             prefix: ds
             namespace: 'http://www.w3.org/2000/09/xmldsig#'
-    CreateEntryRequest:
-      allOf:
-        - $ref: '#/components/schemas/SignedObject'
-        - type: object
-          properties:           
-            Entry:
-              $ref: '#/components/schemas/Entry'
+        Entry:
+          $ref: '#/components/schemas/Entry'
+      required:
+        - Entry
     CreateEntryResponse:
-      allOf:
-        - $ref: '#/components/schemas/SignedObject'
-        - type: object
-          properties:           
-            Entry:
-              $ref: '#/components/schemas/ExtendedEntry'
+      type: object
+      properties:
+        Signature:
+          type: object
+          xml:
+            prefix: ds
+            namespace: 'http://www.w3.org/2000/09/xmldsig#'
+        Entry:
+          $ref: '#/components/schemas/ExtendedEntry'
+      required:
+        - Entry
     DeleteEntryRequest:
-      allOf:
-        - $ref: '#/components/schemas/SignedObject'
-        - type: object
-          properties:           
-            Key:
-              $ref: "#/components/schemas/Key"
+      type: object
+      properties:
+        Signature:
+          type: object
+          xml:
+            prefix: ds
+            namespace: 'http://www.w3.org/2000/09/xmldsig#'
+        Key:
+          $ref: "#/components/schemas/Key"
+      required:
+        - Key
     GetEntryResponse:
-      allOf:
-        - $ref: '#/components/schemas/SignedObject'
-        - type: object
-          properties:           
-            Entry:
-              $ref: '#/components/schemas/ExtendedEntry'
+      type: object
+      properties:
+        Signature:
+          type: object
+          xml:
+            prefix: ds
+            namespace: 'http://www.w3.org/2000/09/xmldsig#'
+        Entry:
+          $ref: '#/components/schemas/ExtendedEntry'
+      required:
+        - Entry
     Problem:
       type: object
       xml:
