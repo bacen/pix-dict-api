@@ -1,0 +1,780 @@
+AccountType:
+  enum:
+  - CACC
+  - SLRY
+  - SVGS
+  description: Tipo de conta, conforme dicionário de domínio para a mensagem pacs.008 do SPI.
+  example: CACC
+  pattern: '[A-Z]{4}'
+BrazilianAccount:
+  type: object
+  description: Dados de conta transacional no Brasil.
+  properties:
+    Participant:
+      allOf:
+        - $ref: '#/ISPB'
+        - description: "Identificador SPB do provedor da conta"
+    Branch:
+      type: string
+      description: Agência, sem dígito verificador.
+      pattern: '[0-9]{1,4}'
+      example: '0001'
+    AccountNumber:
+      type: string
+      description: 'Número de conta, incluindo verificador. Se verificador for letra, substituir por 0.'
+      pattern: '[0-9]{1,20}'
+      example: '0007654321'
+    AccountType:
+      $ref: '#/AccountType'
+  required:
+    - Participant
+    - AccountNumber
+    - AccountType
+Key:
+  type: string
+  description: Chave de endereçamento 
+  maxLength: 77
+  example: '12345678901'      
+KeyType:
+  type: string
+  description: Tipo de chave. _Novos tipos podem surgir_.
+  enum:
+    - CPF
+    - CNPJ
+    - PHONE
+    - EMAIL
+    - EVP
+  example: CPF
+NaturalPerson:
+  type: object
+  properties:
+    Type:
+      type: string          
+      default: NATURAL_PERSON
+    TaxIdNumber:
+      type: string 
+      description: CPF - Cadastro de Pessoa Física
+      pattern: '[0-9]{11}'
+      example: '11122233300'
+    Name:
+      type: string 
+      description: Nome completo
+      example: João Silva
+      maxLength: 100
+  required:
+    - Type      
+    - TaxIdNumber
+    - Name
+LegalPerson:
+  type: object    
+  properties:
+    Type:
+      type: string 
+      default: LEGAL_PERSON
+    TaxIdNumber:
+      type: string 
+      description: CNPJ - Cadastro Nacional de Pessoa Jurídica
+      example: '11222333000150'
+      pattern: '[0-9]{14}'
+    Name:
+      type: string 
+      description: Razão social
+      maxLength: 100
+      example: Padaria Tres Irmãos Ltda
+    TradeName:
+      type: string 
+      description: Nome fantasia
+      maxLength: 100
+      example: Padaria 3 Irmãos
+  required:
+    - Type
+    - TaxIdNumber
+    - Name
+ISPB:
+  type: string
+  pattern: '^[0-9]{8}'
+  example: '12345678'
+Entry:
+  type: object
+  description: Vínculo entre uma chave de endereçamento, conta transacional e seu dono.
+  properties:
+    Key:
+      $ref: '#/Key'
+    KeyType:
+      $ref: '#/KeyType'
+    Account:
+      $ref: '#/BrazilianAccount'
+    Owner:
+      oneOf:
+        - $ref: '#/NaturalPerson'
+        - $ref: '#/LegalPerson'
+      discriminator:
+          propertyName: Type
+          mapping:
+            NATURAL_PERSON: '#/NaturalPerson'
+            LEGAL_PERSON: '#/LegalPerson'
+  required:
+    - KeyType
+    - Account
+    - Owner
+ExtendedEntry:
+  allOf:
+    - $ref: '#/Entry'
+    - type: object
+      xml:
+        name: Entry
+      properties:
+        CreationDate:
+          type: string
+          format: date
+          description: Data de criação do vínculo.
+        KeyOwnershipDate:
+          type: string
+          format: date
+          description: |- 
+            Data a partir da qual o dono tem posse ininterrupta da chave de endereçamento. 
+            Posse da chave aqui é definida pela existência de um vínculo associando a chave ao dono, 
+            possivelmente com contas distintas.
+      required:
+        - Key
+        - CreationDate
+        - KeyOwnershipDate
+EntryOperationReason:
+  type: string
+  enum:
+    - USER_REQUESTED
+    - ACCOUNT_CLOSURE
+    - BRANCH_TRANSFER
+    - ENTRY_INACTIVITY
+    - RECONCILIATION
+ClaimStatus:
+  type: string
+  enum:
+    - OPEN
+    - WAITING_RESOLUTION
+    - CONFIRMED
+    - CANCELLED
+    - COMPLETED
+ClaimType:
+  type: string
+  enum:
+    - OWNERSHIP
+    - PORTABILITY
+  description: Tipo de reivindicação
+ClaimOperationReason:
+  type: string
+  enum:
+    - USER_REQUESTED
+    - ACCOUNT_CLOSURE
+    - FRAUD
+    - DEFAULT_OPERATION
+  description: Razão da operação
+Claim:
+  type: object
+  properties:
+    Type:
+      $ref: '#/ClaimType'
+    Key:
+      $ref: '#/Key'
+    KeyType:
+      allOf:
+        - $ref: '#/KeyType'
+        - description: Tipo de chave. CPF e CNPJ são inválidos, não podem ter posse reivindicada.
+    ClaimerAccount:
+      $ref: '#/BrazilianAccount'
+    Claimer:
+      oneOf:
+        - $ref: '#/NaturalPerson'
+        - $ref: '#/LegalPerson'
+      discriminator:
+          propertyName: Type
+          mapping:
+            NATURAL_PERSON: '#/NaturalPerson'
+            LEGAL_PERSON: '#/LegalPerson'
+  required:
+    - Key
+    - KeyType
+    - ClaimerAccount
+    - Claimer
+    - Type
+ExtendedClaim:
+  allOf:
+    - $ref: '#/Claim'
+    - type: object
+      xml:
+        name: Claim
+      properties:
+        DonorParticipant:
+          allOf:
+            - $ref: '#/ISPB'
+            - description: Identificador SPB do participante que doa a chave reinvidicada
+        Id:
+          type: string
+          format: uuid
+        Status:
+          $ref: '#/ClaimStatus'
+        ResolutionPeriodEnd:
+          type: string
+          format: date-time
+          description: Data-hora quando termina o período de resolução.
+        CompletionPeriodEnd:
+          type: string
+          format: date-time
+          description: Data-hora quando termina o período de encerramento.
+        LastModified:
+          type: string
+          format: date-time
+          description: Data-hora da última modificação do status da reivindicação
+      required:
+        - Donor
+        - Id
+        - Status
+        - ResolutionPeriodEnd
+        - CompletionPeriodEnd
+        - LastModified
+Cid:
+  type: string
+  pattern: '[0-9a-z]{64}'
+  description: Identificador de conteúdo
+CidSetEventType:
+  type: string
+  enum:
+    - ADDED
+    - REMOVED
+CidSetEvent:
+  type: object
+  properties:
+    Type:
+      $ref: '#/CidSetEventType'
+    Cid:
+      $ref: '#/Cid'
+    Timestamp:
+      type: string
+      format: date-time
+      description: Data-hora do evento
+RequestId:
+  type: string
+  format: uuid
+  description: Chave de idempotência da requisição. UUID versão 4.
+SyncVerificationResult:
+  type: string
+  enum:
+    - OK
+    - NOK
+SyncVerifier:
+  type: string
+  pattern: '[0-9a-z]{64}'
+  example: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'
+SyncVerification:
+  type: object
+  properties:
+    Participant:
+      allOf:
+        - $ref: '#/ISPB'
+        - description: Identificador SPB do participante custodiante das chaves
+    KeyType:
+      $ref: '#/KeyType'
+    SyncVerifierLastModified:
+      type: string
+      format: date-time
+      description: Data-hora do último evento que alterou SyncVerifier
+    SyncVerifier:
+      allOf:
+        - $ref: '#/SyncVerifier'
+        - description: Verificador de sincronismo
+  required:
+    - Participant
+    - KeyType
+    - SyncVerifierLastModified
+    - SyncVerifier
+ExtendedSyncVerification:
+  allOf:
+    - $ref: '#/SyncVerification'
+    - type: object
+      xml:
+        name: SyncVerification
+      properties:
+        Id:
+          type: integer
+        Result:
+          $ref: '#/SyncVerificationResult'
+      required:
+        - Id
+        - Result
+FileStatus:
+  type: string
+  description: Status de geração do arquivo.
+  enum:
+    - REQUESTED
+    - PROCESSING
+    - AVAILABLE
+    - ERROR
+  example: AVAILABLE
+CidSetFile:
+  type: object
+  properties:
+    Id:
+      type: integer
+    Status:
+      allOf:
+        - $ref: '#/FileStatus'
+        - description: Status de geração do arquivo de CIDs
+    Participant:
+      allOf:
+        - $ref: '#/ISPB'
+        - description: Identificador SPB do participante custodiante das chaves
+    KeyType:
+      $ref: '#/KeyType'
+    RequestTime:
+      type: string
+      format: date-time
+      description: Data-hora de solicitação da geração do arquivo.
+    CreationTime:
+      type: string
+      format: date-time
+      description: Data-hora em que o arquivo foi gerado. Presente quando status for `AVAILABLE`.
+    Url:
+      type: string
+      description: URL para download do arquivo. Presente quando status for `AVAILABLE`.
+      maxLength: 500
+      example: https://alguma_url.algum_dominio/algum_path/nome_do_arquivo_gerado_pelo_dict.tipo
+    Bytes:
+      type: integer
+      description: Tamanho do arquivo. Presente quando status for `AVAILABLE`.
+    Sha256:
+      type: string
+      description: SHA256 do conteúdo do arquivo. Presente quando status for `AVAILABLE`.
+      pattern: '^[A-Fa-f0-9]{64}'
+      example: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'
+  required:
+    - Id
+    - Status
+    - Participant
+    - KeyType
+    - RequestTime
+
+################## Reconciliation Requests/Responses ##################
+
+CreateCidSetFileRequest:
+  type: object
+  properties:
+    Signature:
+      type: object
+      xml:
+        prefix: ds
+        namespace: 'http://www.w3.org/2000/09/xmldsig#'
+    Participant:
+      allOf:
+        - $ref: '#/ISPB'
+        - description: Identificador SPB do participante custodiante das chaves
+    KeyType:
+      $ref: '#/KeyType'
+  required:
+    - Participant
+    - KeyType
+CreateCidSetFileResponse:
+  type: object
+  properties:
+    Signature:
+      type: object
+      xml:
+        prefix: ds
+        namespace: 'http://www.w3.org/2000/09/xmldsig#'
+    CidSetFile:
+      $ref: '#/CidSetFile'
+GetCidSetFileResponse:
+  type: object
+  properties:
+    Signature:
+      type: object
+      xml:
+        prefix: ds
+        namespace: 'http://www.w3.org/2000/09/xmldsig#'
+    CidSetFile:
+      $ref: '#/CidSetFile'
+CreateSyncVerificationRequest:
+  type: object
+  properties:
+    Signature:
+      type: object
+      xml:
+        prefix: ds
+        namespace: 'http://www.w3.org/2000/09/xmldsig#'
+    SyncVerification:
+      $ref: '#/SyncVerification'
+  required:
+    - SyncVerification
+CreateSyncVerificationResponse:
+  type: object
+  properties:
+    Signature:
+      type: object
+      xml:
+        prefix: ds
+        namespace: 'http://www.w3.org/2000/09/xmldsig#'
+    SyncVerification:
+      $ref: '#/ExtendedSyncVerification'
+  required:
+    - SyncVerification
+ListCidSetEventsResponse:
+  type: object
+  properties:
+    Signature:
+      type: object
+      xml:
+        prefix: ds
+        namespace: 'http://www.w3.org/2000/09/xmldsig#'
+    Participant:
+      allOf:
+        - $ref: '#/ISPB'
+        - description: Identificador SPB do participante custodiante das chaves
+    KeyType:
+      $ref: '#/KeyType'
+    StartTime:
+      type: string
+      format: date-time
+      description: Data-hora do primeiro evento da lista
+    EndTime:
+      type: string
+      format: date-time
+      description: Data-hora do último evento da lista
+    SyncVerifierStart:
+      allOf:
+        - $ref: '#/SyncVerifier'
+        - description: Verificador de sincronismo antes do primeiro evento
+    SyncVerifierEnd:
+      allOf:
+        - $ref: '#/SyncVerifier'
+        - description: Verificador de sincronismo após último evento
+    CidSetEvents:
+      type: array
+      items:
+        $ref: '#/CidSetEvent'
+  required:
+    - Participant
+    - KeyType
+    - StartTime
+    - EndTime
+    - SyncVerifierStart
+    - SyncVerifierEnd
+GetEntryByCidResponse:
+  type: object
+  properties:
+    Signature:
+      type: object
+      xml:
+        prefix: ds
+        namespace: 'http://www.w3.org/2000/09/xmldsig#'
+    Cid:
+      $ref: '#/Cid'
+    Entry:
+      $ref: '#/ExtendedEntry'
+  required:
+    - Cid
+    - Entry
+################## Claims Requests/Responses ##################  
+CreateClaimRequest:
+  type: object
+  properties:
+    Signature:
+      type: object
+      xml:
+        prefix: ds
+        namespace: 'http://www.w3.org/2000/09/xmldsig#'
+    Claim:
+      $ref: '#/Claim'
+  required:
+    - Claim
+CreateClaimResponse:
+  type: object
+  properties:
+    Signature:
+      type: object
+      xml:
+        prefix: ds
+        namespace: 'http://www.w3.org/2000/09/xmldsig#'
+    Claim:
+      $ref: '#/ExtendedClaim'
+  required:
+    - Claim
+AcknowledgeClaimRequest:
+  type: object
+  properties:
+    Signature:
+      type: object
+      xml:
+        prefix: ds
+        namespace: 'http://www.w3.org/2000/09/xmldsig#'
+    ClaimId:
+      type: string
+      format: uuid
+  required:
+    - ClaimId
+AcknowledgeClaimResponse:
+  type: object
+  properties:
+    Signature:
+      type: object
+      xml:
+        prefix: ds
+        namespace: 'http://www.w3.org/2000/09/xmldsig#'
+    Claim:
+      $ref: '#/ExtendedClaim'
+  required:
+    - Claim
+ConfirmClaimRequest:
+  type: object
+  properties:
+    Signature:
+      type: object
+      xml:
+        prefix: ds
+        namespace: 'http://www.w3.org/2000/09/xmldsig#'
+    ClaimId:
+      type: string
+      format: uuid
+  required:
+    - ClaimId
+ConfirmClaimResponse:
+  type: object
+  properties:
+    Signature:
+      type: object
+      xml:
+        prefix: ds
+        namespace: 'http://www.w3.org/2000/09/xmldsig#'
+    Claim:
+      $ref: '#/ExtendedClaim'
+  required:
+    - Claim
+CancelClaimRequest:
+  type: object
+  properties:
+    Signature:
+      type: object
+      xml:
+        prefix: ds
+        namespace: 'http://www.w3.org/2000/09/xmldsig#'
+    ClaimId:
+      type: string
+      format: uuid
+    Reason:
+      $ref: '#/ClaimOperationReason'
+  required:
+    - ClaimId
+    - Reason
+CancelClaimResponse:
+  type: object
+  properties:
+    Signature:
+      type: object
+      xml:
+        prefix: ds
+        namespace: 'http://www.w3.org/2000/09/xmldsig#'
+    Claim:
+      $ref: '#/ExtendedClaim'
+  required:
+    - Claim
+CompleteClaimRequest:
+  type: object
+  properties:
+    Signature:
+      type: object
+      xml:
+        prefix: ds
+        namespace: 'http://www.w3.org/2000/09/xmldsig#'
+    ClaimId:
+      type: string
+      format: uuid
+    Reason:
+      $ref: '#/ClaimOperationReason'
+    RequestId:
+      $ref: '#/RequestId'
+  required:
+    - ClaimId
+    - Reason
+    - RequestId
+CompleteClaimResponse:
+  type: object
+  properties:
+    Signature:
+      type: object
+      xml:
+        prefix: ds
+        namespace: 'http://www.w3.org/2000/09/xmldsig#'
+    Claim:
+      $ref: '#/ExtendedClaim'
+  required:
+    - Claim
+GetClaimResponse:
+  type: object
+  properties:
+    Signature:
+      type: object
+      xml:
+        prefix: ds
+        namespace: 'http://www.w3.org/2000/09/xmldsig#'
+    Claim:
+      $ref: '#/ExtendedClaim'
+  required:
+    - Claim
+ListClaimsResponse:
+  type: object
+  properties:
+    Signature:
+      type: object
+      xml:
+        prefix: ds
+        namespace: 'http://www.w3.org/2000/09/xmldsig#'
+    Claims:
+      type: array
+      items:
+        $ref: '#/ExtendedClaim'
+
+##### ENTRY ###########################  
+CreateEntryRequest:
+  type: object
+  properties:
+    Signature:
+      type: object
+      xml:
+        prefix: ds
+        namespace: 'http://www.w3.org/2000/09/xmldsig#'
+    Entry:
+      $ref: '#/Entry'
+    Reason:
+      allOf:
+        - $ref: '#/EntryOperationReason'
+        - description: "Valores válidos: `USER_REQUESTED` e `RECONCILIATION`"
+    RequestId:
+      $ref: '#/RequestId'
+  required:
+    - Entry
+    - Reason
+    - RequestId
+UpdateEntryRequest:
+  type: object
+  properties:
+    Signature:
+      type: object
+      xml:
+        prefix: ds
+        namespace: 'http://www.w3.org/2000/09/xmldsig#'
+    Key:
+      $ref: "#/Key"
+    Account:
+      $ref: '#/BrazilianAccount'
+    Reason:
+      allOf:
+        - $ref: '#/EntryOperationReason'
+        - description: "Valores válidos: `USER_REQUESTED`, `BRANCH_TRANSFER` e `RECONCILIATION`"
+  required:
+    - Key
+    - Account
+    - Reason
+UpdateEntryResponse:
+  type: object
+  properties:
+    Signature:
+      type: object
+      xml:
+        prefix: ds
+        namespace: 'http://www.w3.org/2000/09/xmldsig#'
+    Entry:
+      $ref: '#/ExtendedEntry'
+  required:
+    - Entry
+CreateEntryResponse:
+  type: object
+  properties:
+    Signature:
+      type: object
+      xml:
+        prefix: ds
+        namespace: 'http://www.w3.org/2000/09/xmldsig#'
+    Entry:
+      $ref: '#/ExtendedEntry'
+  required:
+    - Entry
+DeleteEntryRequest:
+  type: object
+  properties:
+    Signature:
+      type: object
+      xml:
+        prefix: ds
+        namespace: 'http://www.w3.org/2000/09/xmldsig#'
+    Key:
+      $ref: "#/Key"
+    Reason:
+      allOf:
+        - $ref: '#/EntryOperationReason'
+        - description: "Valores válidos: `USER_REQUESTED`, `ACCOUNT_CLOSURE`, `ENTRY_INACTIVITY` e `RECONCILIATION`"
+  required:
+    - Key
+    - Reason
+DeleteEntryResponse:
+  type: object
+  properties:
+    Signature:
+      type: object
+      xml:
+        prefix: ds
+        namespace: 'http://www.w3.org/2000/09/xmldsig#'
+    Key:
+      $ref: "#/Key"
+  required:
+    - Key
+GetEntryResponse:
+  type: object
+  properties:
+    Signature:
+      type: object
+      xml:
+        prefix: ds
+        namespace: 'http://www.w3.org/2000/09/xmldsig#'
+    Entry:
+      $ref: '#/ExtendedEntry'
+  required:
+    - Entry
+
+#######################################  
+Problem:
+  type: object
+  xml:
+    name: 'problem'
+    namespace: 'urn:ietf:rfc:7807'
+  properties:
+    type:
+      type: string
+      format: uri
+      example: 'https://dict.pi.rsfn.net.br/api/v1/error/NotFound'
+    title:
+      type: string
+      example: 'Not found'
+    status:
+      type: integer
+      example: 404
+    detail:
+      type: string
+    violations:
+      type: array
+      items:
+        $ref: '#/Violation'
+  required:
+    - type
+    - title
+    - status
+Violation:
+  type: object
+  xml:
+    name: violation
+  properties:
+    reason:
+      type: string
+    value:
+      type: string
+    property:
+      type: string
+  required:
+    - reason

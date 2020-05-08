@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ListCidSetEventsResponse>
+    <Signature></Signature>
+    <Participant>12345678</Participant>
+    <KeyType>CPF</KeyType>
+    <StartTime>2020-01-10T10:00:00Z</StartTime>
+    <EndTime>2020-01-10T11:00:00Z</EndTime>
+    <SyncVerifierStart>ed02457b5c41d964dbd2f2a609d63fe1bb7528dbe55e1abf5b52c249cd735797</SyncVerifierStart>
+    <SyncVerifierEnd>a592f5fb5bef95a3ec8431ebaf609e1af1e4c1b46edb0475394c5595988c748c</SyncVerifierEnd>
+    <CidSetEvents>
+        <CidSetEvent>
+            <Type>ADDED</Type>
+            <Cid>ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb</Cid>
+            <Timestamp>2020-01-10T10:00:00Z</Timestamp>
+        </CidSetEvent>
+        <CidSetEvent>
+            <Type>REMOVED</Type>
+            <Cid>961b6dd3ede3cb8ecbaacbd68de040cd78eb2ed5889130cceb4c49268ea4d506</Cid>
+            <Timestamp>2020-01-10T11:11:11Z</Timestamp>
+        </CidSetEvent>
+    </CidSetEvents>
+</ListCidSetEventsResponse>

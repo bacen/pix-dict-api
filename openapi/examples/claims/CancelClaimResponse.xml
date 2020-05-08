@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CancelClaimResponse>
+    <Signature></Signature>
+    <Claim>
+        <Type>OWNERSHIP</Type>
+        <Key>+5561988887777</Key>
+        <KeyType>PHONE</KeyType>
+        <ClaimerAccount>
+            <Participant>12345678</Participant>
+            <Branch>00001</Branch>
+            <AccountNumber>0007654321</AccountNumber>
+            <AccountType>CACC</AccountType>
+        </ClaimerAccount>
+        <Claimer>
+            <Type>NATURAL_PERSON</Type>
+            <TaxIdNumber>11122233300</TaxIdNumber>
+            <Name>João Silva</Name>
+        </Claimer>
+        <DonorParticipant>87654321</DonorParticipant>
+        <Id>123e4567-e89b-12d3-a456-426655440000</Id>
+        <Status>CANCELLED</Status>
+        <ResolutionPeriodEnd>2020-01-17T10:00:00Z</ResolutionPeriodEnd>
+        <CompletionPeriodEnd>2020-01-17T10:00:00Z</CompletionPeriodEnd>
+        <LastModified>2020-01-10T10:00:00Z</LastModified>
+    </Claim>
+</CancelClaimResponse>

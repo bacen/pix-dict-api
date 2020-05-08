@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CreateCidSetFileRequest>
+    <Signature></Signature>
+    <Participant>12345678</Participant>
+    <KeyType>PHONE</KeyType>
+</CreateCidSetFileRequest>

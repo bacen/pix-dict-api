@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CompleteClaimRequest>
+    <Signature></Signature>
+    <ClaimId>123e4567-e89b-12d3-a456-426655440000</ClaimId>
+    <RequestId>a946d533-7f22-42a5-9a9b-e87cd55c0f4d</RequestId>
+</CompleteClaimRequest>

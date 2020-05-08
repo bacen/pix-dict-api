@@ -1,0 +1,1181 @@
+openapi: 3.0.0
+info:
+  title: DICT API
+  version: '1.0.0-RC2'
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0
+  contact:
+    name: Suporte TI BCB
+    email: suporte.ti@bcb.gov.br
+    url: https://www.bcb.gov.br/estabilidadefinanceira/pagamentosinstantaneos
+  description: |- 
+    O Diretório de Identificadores de Contas Transacionais - DICT - é o serviço do arranjo PIX que permite 
+    buscar detalhes de contas transacionais  com chaves de endereçamento mais convenientes para quem faz 
+    um pagamento. Entre os tipos de chave atualmente disponíveis estão CPF, CNPJ, telefone, e-mail e EVP.
+    As informações retornadas pelo DICT permitem ao pagador confirmar a identidade do recebedor, proporcionando 
+    uma experiência mais fácil e segura. Permitem também ao PSP do pagador criar a mensagem de instrução de 
+    pagamento a ser enviada para o sistema de liquidação com os detalhes de conta do recebedor.
+  
+    # Segurança
+    ## Autenticação 
+    O DICT utiliza autenticação mútua TLS.
+
+    As definições de autenticação para essa API estão especificados no 
+    [manual de segurança PIX](https://www.bcb.gov.br/content/estabilidadefinanceira/forumpireunioes/Anexo%20IV%20-%20Manual%20de%20Seguranca%20PIX%20v2.0.pdf)
+   
+    ## Assinatura digital
+    Requisições que incluam ou alterem informações no DICT devem ser assinadas com 
+    [XML Digital Signature](https://www.w3.org/2000/09/xmldsig) pelo participante que envia a requisição.
+    Requisições de consulta não precisam ser assinadas. Respostas retornadas pelo DICT serão assinadas digitalmente. 
+    As assinaturas **devem** ser validadas pelos clientes da API.
+
+    A assinatura será colocada no elemento `Signature` das requisições e respostas. 
+    O `Signature` será [envelopado](https://www.w3.org/TR/xmldsig-core1/#def-SignatureEnveloped) pelo XML que está 
+    sendo assinado (assinatura é um elemento filho).
+
+    Para mais detalhes sobre a forma de construir a assinatura, consulte o
+    [manual de segurança PIX](https://www.bcb.gov.br/content/estabilidadefinanceira/forumpireunioes/Anexo%20IV%20-%20Manual%20de%20Seguranca%20PIX%20v2.0.pdf).
+
+    ## Limitação de requisições
+    
+    Para previnir ataques de enumeração, há mecanismo de limitação da quantidade de consultas que podem ser feitas 
+    num espaço de tempo (_rate-limiting_). 
+    A limitação atua em dois níveis, para usuários individuais e para um participante como um todo.
+
+    Para cada um desses níveis, há limite para o número de consultas que não resultam em pagamento.
+
+    Quando algum desses limites for atingido, o serviço retornará status `429`, especificando a causa.
+    Cabeçalhos indicando os parâmetros de _rate-limiting_ serão retornados nas requisições. Ver, por exemplo,
+    os cabeçalhos retornados ao [consultar vínculo](#operation/getEntry).
+
+    # Evolução da API
+
+    As seguintes mudanças são esperadas e consideradas retro-compatíveis (_backwards-compatibility_):
+
+    - Adição de novos recursos na API.
+    - Adição de novos parâmetros opcionais a requisições.
+    - Adição de novos campos em respostas da API.
+    - Alteração da ordem de campos.
+    - Adição de novos elementos em enumerações
+
+    Mudanças compatíveis não geram nova versão da API. 
+    Clientes devem estar preparados para lidar com essas mudanças sem quebrar.
+
+    Mudanças incompatíveis geram nova versão da API.
+
+    # Tratamento de erros
+
+    O DICT retorna códigos de status HTTP para indicar sucesso ou falhas das requisições. 
+    Códigos 2xx indicam sucesso. Códigos 4xx indicam falhas causadas pelas informações 
+    enviadas pelo cliente ou pelo estado atual das entidades. Códigos 5xx indicam problemas 
+    no serviço no lado do DICT.
+
+    As respostas de erro incluem no corpo detalhes do erro seguindo o schema da RFC 
+    [Problem Details for HTTP APIs](https://tools.ietf.org/html/rfc7807).    
+    O campo `type` identifica o tipo de erro e no DICT segue o padrão: 
+    `https://dict.pi.rsfn.net.br/api/v1/error/<TipoErro>`
+
+    Abaixo estão listados os tipos de erro do DICT.
+
+
+    **Gerais**
+
+    - `Forbidden`
+      - Requisição de participante autenticado que viola alguma regra de autorização. 
+        Ver [rfc7231](https://tools.ietf.org/html/rfc7231#section-6.5.3).
+
+    - `BadRequest`
+      -  Requisição com formato inválido.
+        Ver [rfc7231](https://tools.ietf.org/html/rfc7231#section-6.5.1)
+
+    - `NotFound`
+      - Entidade não encontrada. 
+        Ver [rfc7231](https://tools.ietf.org/html/rfc7231#section-6.5.4)
+
+    - `RateLimited`
+      - Limite de requisições foi atingido. 
+        Ver seção sobre [limitação de requisições](#section/Seguranca/Limitacao-de-requisicoes)
+
+    - `ServiceUnavailable`
+      - Serviço não está disponível no momento. Serviço solicitado pode estar em manutenção ou fora
+        da janela de funcionamento.
+
+    - `RequestSignatureInvalid`
+      - Assinatura digital da requisição enviada é inválida.
+
+    - `RequestOnBehalfUnauthorized`
+      - Participante direto envia requisição em nome de participante indireto para o qual não tem autorização.
+
+    - `RequestIdAlreadyUsed`
+      - Requisição foi feita com mesmo `RequestId` de requisição feita anteriormente, mas com parâmetros diferentes.
+
+    **Vínculos**
+    
+    - `EntryInvalid`
+      - Existem campos inválidos ao tentar criar novo vínculo.
+
+    - `EntryLimitExceeded`
+      - Número de vínculos associados a conta transacional excedeu o limite máximo.
+
+    - `EntryAlreadyExists`
+      - Já existe vínculo para essa chave com o mesmo participante e dono.
+
+    - `EntryCannotBeQueriedForBookTransfer`
+      - Vínculo consultado está custodiado no mesmo PSP do usuário pagador para quem está sendo feita a consulta.
+        Quando o pagador e o recebedor estão no mesmo PSP, não deve ser feita consulta ao DICT.
+
+    - `EntryKeyOwnedByDifferentPerson`
+      - Já existe vínculo para essa chave mas ela é possuída por outra pessoa.
+        Indica-se que seja feita uma reivindicação de posse.
+
+    - `EntryKeyInCustodyOfDifferentParticipant`
+      - Já existe vínculo para essa chave com o mesmo dono, mas ela encontra-se associada
+        a outro participante. Indica-se que seja feita uma reivindicação de portabilidade.
+    
+    - `EntryLockedByClaim`
+      - Existe uma reivindicação com status diferente de concluída ou cancelada para a chave 
+        do vínculo. Enquanto estiver nessa situação, o vínculo não pode ser excluído.
+
+    **Reivindicações**
+
+    - `ClaimInvalid`
+      - Existem campos inválidos ao tentar criar nova reivindicação.
+
+    - `ClaimTypeInconsistent`
+      - Tipo de reivindicação pedida é inconsistente. Esse erro ocorre nas situações em que 
+      se tenta criar a) reivindicação de _posse_, mas vínculo existente tem como dona a mesma 
+      pessoa que reivindica ou b) reinvidicação de _portabilidade_, mas vínculo existente tem 
+      como dona pessoa diferente da que reivindica.
+
+    - `ClaimKeyNotFound`
+      - Não existe vínculo registrado com a chave que está sendo reivindicada.
+
+    - `ClaimAlreadyExistsForKey`
+      - Existe uma reivindicação com status diferente de concluída ou cancelada para a chave reivindicada.
+        Nova reivindicação para a chave só pode ser criada se a atual foi concluída ou cancelada.
+
+    - `ClaimResultingEntryAlreadyExists`
+      - Vínculo que resultaria ao processar reivindicação já existe, com mesma chave, participante e dono.
+
+    - `ClaimOperationInvalid`
+      - Status atual da reivindicação não permite que operação seja feita.
+
+    - `ClaimResolutionPeriodNotEnded`
+      - Para reivindicação de posse, PSP doador não pode __confirmar__ antes do término do período resolução.
+        Para portabilidade, PSP doador não pode __cancelar__ por fim de prazo antes do término do período resolução.
+
+    - `ClaimCompletionPeriodNotEnded`
+      - Para reivindicação de posse, se PSP reivindicador tenta encerrar antes do término do período encerramento.
+
+servers:
+  - url: https://dict.pi.rsfn.net.br/api/v1/
+    description: Servidor de Produção
+  - url: https://dict-h.pi.rsfn.net.br/api/v1/
+    description: Servidor de Homologação
+tags:
+  - name: Directory
+    x-displayName: Diretório
+    description: |- 
+      O diretório de identificadores de contas transacionais é um conjunto de vínculos.
+      Um vínculo é uma associação entre uma chave de endereçamento, uma conta transacional e seu dono.
+      O dono pode ser uma pessoa física ou uma pessoa jurídica. A chave de endereçamento é usada identificar um vínculo.
+      
+      Os tipos de chave suportadas atualmente são as seguintes:
+      
+      |  Tipo         | Exp. regular                                                                                               | Exemplo                              | Comentário                                                                |
+      |---------------|------------------------------------------------------------------------------------------------------------|--------------------------------------|---------------------------------------------------------------------------|
+      | CPF           |  ^\[0-9\]{11}$                                                                                             | 12345678901                          |                                                                           |
+      | CNPJ          |  ^\[0-9\]{14}$                                                                                             | 12345678901234                       |                                                                           |
+      | PHONE         |  ^\\+\[1-9\]\[0-9\]\d{1,14}$                                                                               | +5510998765432                       |                                                                           |
+      | EMAIL         |  [e-mails válidos W3C HTML5](https://html.spec.whatwg.org/multipage/input.html#valid-e-mail-address)       | pix@bcb.gov.br                       | E-mail deve possuir no máximo 77 caracteres e deve ser em minúsculo       | 
+      | EVP           |  [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}                                              | 123e4567-e89b-12d3-a456-426655440000 | Endereço Virtual de Pagamento é um tipo de chave é gerado pelo DICT       |
+
+
+      Novos tipos de chave poderão vir a ser adicionados no futuro. Logo, é importante que a implementação de clientes
+      seja flexível, permitindo a adição de novos tipos de chave.
+
+  - name: Claim
+    x-displayName: Reivindicação
+    description: |- 
+      Conforme as chaves mudem de dono ou os usuários finais criem contas transacionais em outros PSPs, 
+      os seguintes cenários precisarão ser tratados:
+      
+      1. Houve troca de posse de uma chave (telefone ou email) e o novo dono deseja 
+      criar um vínculo para uma conta sua mas o dono anterior já possui vínculo registrado 
+      no DICT com essa chave.
+      2. Um usuário deseja mudar a vinculação de uma chave sua para outra conta, que 
+      está domiciliada em um participante diferente do atual.
+
+      Para o cenário 1, deve ser criada uma _reivindicação de posse_. Já para o cenário 2,
+      uma _portabilidade_. Em ambos cenários existirá a figura do PSP que irá ceder a chave (PSP Doador),
+      e o PSP que irá receber a chave (PSP Reivindicador). No cenário de _reivindicação de posse_, o PSP 
+      doador e o reivindicador podem ser o mesmo.
+
+      Nessa especificação, _reivindicação_ sem qualificador é usado como termo mais genérico para se referir 
+      tanto à reivindicação de posse quanto à (reivindicação de) portabilidade.
+
+      Os processos de reivindicação são sempre iniciados pelo PSP reivindicador.
+      Uma reivindicação tem as seguintes situações:
+        - `OPEN` - Aberta pelo reivindicador, mas ainda não recebida pelo doador.
+        - `WAITING_RESOLUTION` - Já foi recebida pelo doador e está aguardando a resolução. Os critérios confirmação
+        ou cancelamento da reivindicação seguem normas específicas a depender do tipo (posse ou portabilidade).
+        - `CONFIRMED` - O doador confirmou a reivindicação. Isso implica a remoção da chave do DICT e da base interna 
+        do PSP doador. Está aguardando o reivindicador encerrar o processo.
+        - `CANCELLED` - O doador ou reivindicador cancelou a reivindicação, mantendo o vínculo inalterado (conforme estava antes da 
+        reivindicação) tanto no DICT quanto na base interna do PSP.
+        - `COMPLETED` - Tanto o DICT quanto o reivindicador atualizaram suas bases com o novo vínculo.
+
+      **Diagrama de estados**
+
+      ```
+      ( OPEN )------->( WAITING_RESOLUTION )------->( CONFIRMED )------->( COMPLETED )
+                                |                        /                            
+                                |                       /                             
+                                |                      /                              
+                                |                     /--Apenas para                  
+                                v                    /   reivindicação                
+                          ( CANCELLED )<------------v    de posse                      
+      ```
+
+      **Importante!** 
+      Os participantes deverão monitorar as reivindicações fazendo _polling_ períodico no _endpoint_
+      de [listar reivindicações](#operation/listClaims). A periodicidade adequada dependerá 
+      das definições de nível de serviço.
+
+  - name: Reconciliation
+    x-displayName: Reconciliação
+    description: |- 
+      A reconciliação permite que o participante identifique inconsistências nos vínculos da sua base de dados interna 
+      e o DICT. É possível fazer a verificação de forma agregada, sobre todo o conjunto de vínculos, e a verificação de um 
+      vínculo individual.
+      
+      Para permitir que a reconciliação seja feita de forma eficiente e segura, toda operação realizada em cima de um vínculo
+      gera um identificador de conteúdo, ou CID (_content identifier_). O CID é um número de 256 bits que identifica de forma 
+      única o vínculo e todos os seus atributos essenciais (ver seção sobre cálculo do CID). Modifições dos dados essenciais 
+      do vínculo implicam na modificação do CID associado a ele.
+      
+      A verificação agregada dos vínculos é feita com base no _verificador de sincronismo_ (VSync). O participante pode 
+      aferir a igualdade do conjunto de vínculos em seu domínio gerando o VSync (ver seção sobre cálculo do VSync) da sua base 
+      e criando uma [verificação de sincronismo](#operation/createSyncVerification). A igualdade dos VSyncs do DICT e do 
+      PSP implica, com altíssima probabilidade, que o conjunto de CIDs é igual. Caso os VSyncs sejam diferentes, o conjunto 
+      de CIDs é necessariamente diferente, o que significa que há divergências no conjunto de dados de vínculos naquele momento.
+
+      Ao identificar divergências, PSP poderá [consultar pelo CID](#operation/getEntryByCid), [alterar](#operation/updateEntry),
+      [remover](#operation/deleteEntry) ou [criar](#operation/createEntry) vínculos colocando no campo `Reason` das requisições
+      o valor `RECONCILIATION`.
+
+      As operações feitas no conjunto de vínculos sob domínio do PSP podem ser acompanhadas de forma contínua no 
+      [log de eventos de CIDs](#operation/listCidSetEvents).
+
+      Para obter uma lista completa dos CIDs no DICT relativos a um tipo de chave, um PSP poderá solicitar a 
+      [criação de um arquivo de CIDs](#operation/createCidSetFile).
+
+      ## Cálculo de CID
+
+      O CID é calculado da seguinte forma:
+
+      ```
+      entryAttributes = keyType "&" key "&" ownerTaxIdNumber "&" ownerName "&" ownerTradeName "&" participant "&" branch "&" accountNumber "&" accountType
+      cidBytes = hmacSha256(requestIdBytes, entryAttributes)
+      cid = lowercase-hexadecimal(cidBytes)
+      ```
+      Observações:
+
+      - `entryAttributes` é uma string construída pela junção dos atributos essenciais do vínculo, separados por `&`. 
+        Todos atributos são strings codificadas em UTF-8. Atributos nulos são codificados com string em branco, "".
+      - `hmacSha256` é a função HMAC baseada na função de hash SHA-256.
+      - `requestIdBytes` são 16 bytes aleatórios, gerados para identificar a requisição que cria o vínculo, usado como chave na função hmacSha256.
+      - `cid` é a representação hexadecimal, em lowercase, do resultado da função hmacSha256.
+
+      Exemplo:
+
+      ```
+      entryAttributes = 'PHONE&+5511987654321&11122233300&João Silva&&12345678&00001&0007654321&CACC'
+      requestIdBytes = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
+      cid = '28c06eb41c4dc9c3ae114831efcac7446c8747777fca8b145ecd31ff8480ae88'
+      ```
+
+
+      ## Cálculo do VSync
+      
+      
+      O VSync é resultado da aplicação de bitwise-XOR ('OU' exclusivo bit-a-bit) sobre todos os CIDs de um determinado 
+      tipo de chave.
+
+      Exemplo: 
+
+      ```
+      cids = ['28c06eb41c4dc9c3ae114831efcac7446c8747777fca8b145ecd31ff8480ae88', 
+              '4d4abb9168114e349672b934d16ed201a919cb49e28b7f66a240e62c92ee007f', 
+              'fce514f84f37934bc8aa0f861e4f7392273d71b9d18e8209d21e4192a7842058']
+
+      vsync = xor(xor(cids[0], cids[1]), cids[2])  = '996fc1dd3b6b14bcf0c9fe8320eb66d7e2a3fd874ccf767b2e939641b1ea8eaf'
+      ````
+
+      Observações:
+      - VSync para um conjunto vazio de CIDs é definido como zero.
+      - Há três CIDs no exemplo acima, representados em hexadecimal. A operação bitwise-XOR é feita com os CIDs em formato binário.
+      - bitwise-XOR é comutativo, não importa a ordem da sua aplicação.
+      - Para calcular o novo VSync resultante da adição de um CID ao conjunto, basta calcular o XOR desse CID com o VSync atual.
+        O novo VSync resultante da remoção de um CID é calculado da mesma forma.
+      
+paths:
+########################################################################################################################
+## ENTRIES 
+########################################################################################################################
+  '/entries/':
+    post:
+      summary: Criar Vínculo
+      description: |- 
+          Cria um novo vínculo de chave com conta transacional.
+
+          ### Idempotência
+          A operação de criação de vínculo é idempotente. Isso significa que é seguro realizar uma nova tentativa em caso de falhas 
+          temporárias, como erros de conexão ou término abrupto de processos. A resposta retornada para uma requisição repetida é 
+          equivalente à resposta dada à primeira requisição processada.
+          
+          Para garantir a idempotência da operação, a requisição tem um campo `RequestId`. Esse campo é um 
+          [UUID versão 4](https://tools.ietf.org/html/rfc4122#section-4.4) e deve ser único no contexto de um mesmo participante. 
+          O `RequestId` fica associado ao vínculo criado e é usado no cálculo do seu CID (ver seção de reconciliação).
+
+          Uma requisição de criação é considerada repetida quando o CID do vínculo contido na requisição já existe no DICT.
+          Caso seja feita uma requisição com um `RequestId` previamente usado, mas com parâmetros diferentes para o vínculo,
+          será retornado o erro `RequestIdAlreadyUsed`.
+
+      operationId: createEntry
+      tags:
+        - Directory
+      requestBody:
+        content: 
+          application/xml:
+            schema:
+              $ref: '#/components/schemas/CreateEntryRequest'
+            examples:
+                phone:
+                  value: 
+                    $ref: "./examples/entries/CreateEntryRequest.xml"
+      responses:
+        '201':
+          description: Created
+          content:
+            application/xml:           
+              schema:
+                $ref: '#/components/schemas/CreateEntryResponse'                                
+              examples:
+                example:
+                  value: 
+                    $ref: "./examples/entries/CreateEntryResponse.xml"
+        '400':
+          $ref: "#/components/responses/EntryInvalid"
+        '403': 
+          $ref: "#/components/responses/Forbidden"
+        '503':
+          $ref: "#/components/responses/ServiceUnavailable"
+
+  '/entries/{Key}':
+    parameters:
+      - schema:
+          $ref: "#/components/schemas/Key"
+        name: Key
+        in: path
+        required: true  
+    get:
+      summary: Consultar Vínculo
+      tags:
+        - Directory
+      description: |-
+        Obtém um vínculo contendo os detalhes de conta transacional associados a uma chave de endereçamento.
+        
+
+        ### Limitação de requisições
+        A política de limitação (_rate-limiting_) funciona com base em cabeçalhos enviados na requisição.
+
+        O parâmetro `PI-PayerId` é o identificador pseudonimizado do usuário final, vinculado a um participante. 
+        Requisições vindas de um mesmo usuário, para um mesmo participante, devem usar o mesmo identificador. 
+        Como sugestão de implementação, pode ser utilizado o valor hexadecimal da aplicação de 
+        [HMAC-SHA-256](https://tools.ietf.org/html/rfc4634#section-7) a um identificador do usuário, 
+        com chave de conhecimento restrito ao participante.
+
+        ### Cache
+        Consultas a vínculos podem ter suas respostas _cacheadas_ no PSP, devendo seguir as 
+        diretivas contidas no header [`Cache-Control`](https://tools.ietf.org/html/rfc7234#section-5.2).
+
+        _Importante_: Para fazer uso de cache, clientes HTTP geralmente precisam ser configurados. Não
+        é comum que tenham essa funcionalidade habilitada por padrão.
+
+      operationId: getEntry
+      parameters:
+        - schema:
+            type: string
+            pattern: '^[0-9]{8}'
+            example: '12345678'            
+          in: header
+          name: PI-PayerAccountServicer
+          description: 'Identificador SPB do participante onde o pagador possui conta. Usado para _rate-limiting_.'
+          required: true
+        - schema:
+            type: string
+            pattern: '[0-9a-z]{64}'
+          in: header
+          name: PI-PayerId
+          description: 'Identificador pseudonimizado do pagador que originou a requisição. Usado para _rate-limiting_.'
+          required: true
+        - schema:
+            type: string
+          in: header
+          name: PI-EndToEndId
+          description: 'Identificador fim-a-fim do pagamento associado a essa requisição. Corresponde ao campo `EndToEndId` na mensagem pacs.008. Usado para _rate-limiting_.'
+          required: true
+      responses:
+        '200':
+          description: OK
+          headers:
+            PI-RateLimit-ClientRemaining:
+              description: Número de requisições disponíveis para que limite associado ao `PI-PayerId` seja atingido.
+              schema:
+                type: integer
+              example: 100
+            PI-RateLimit-ClientReset:
+              description: Segundos até que limite associado ao `PI-PayerId` seja renovado.
+              schema:
+                type: integer
+              example: 30
+            PI-RateLimit-ParticipantRemaining:
+              description: Número de requisições disponíveis para que limite associado ao `PI-PayerAccountServicer` seja atingido.
+              schema:
+                type: integer
+              example: 100
+            PI-RateLimit-ParticipantReset:
+              description: Segundos até que limite associado ao `PI-PayerAccountServicer` seja renovado.
+              schema:
+                type: integer
+              example: 30
+          content:
+            application/xml:           
+              schema:
+                $ref: '#/components/schemas/GetEntryResponse'                                
+              examples:
+                natural-person:
+                  value: 
+                    $ref: './examples/entries/GetEntryResponse.xml'
+        '404':
+          $ref: "#/components/responses/NotFound"
+        '429':
+          $ref: "#/components/responses/RateLimited"
+    put:
+      summary: Atualizar Vínculo
+      tags:
+        - Directory
+      description: |-
+        Atualiza um vínculo. 
+        
+        A ser utilizado no cenário de atualização da informação da conta de um cliente, permanecendo este no mesmo PSP.
+        Somente pode ser atualizada a informação de conta do vínculo. Outras atualizações do vínculo devem ser feitas
+        por exclusão/inclusão do vínculo, portabilidade ou reivindicação de posse, a depender da situação.
+        
+      operationId: updateEntry
+      requestBody:
+        content: 
+          application/xml:
+            schema:
+              $ref: '#/components/schemas/UpdateEntryRequest'
+            examples:
+                example:
+                  value: 
+                    $ref: './examples/entries/UpdateEntryRequest.xml'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/xml:           
+              schema:
+                $ref: '#/components/schemas/UpdateEntryResponse'                                
+              examples:
+                example:
+                  value: 
+                    $ref: './examples/entries/UpdateEntryResponse.xml'
+        '403':
+          $ref: "#/components/responses/Forbidden"
+        '400':
+          $ref: "#/components/responses/BadRequest"
+        '404':
+          $ref: "#/components/responses/NotFound"
+        '503':
+          $ref: "#/components/responses/ServiceUnavailable"
+  
+  '/entries/{Key}/delete':
+    parameters:
+      - schema:
+          $ref: "#/components/schemas/Key"
+        name: Key
+        in: path
+        required: true  
+    post:
+      summary: Remover Vínculo
+      operationId: deleteEntry
+      description: Remove um vínculo de chave com conta.
+      tags:
+        - Directory
+      requestBody:
+        content: 
+          application/xml:
+            schema:
+              $ref: '#/components/schemas/DeleteEntryRequest'
+            examples:
+              example:
+                value: 
+                  $ref: './examples/entries/DeleteEntryRequest.xml'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/xml:           
+              schema:
+                $ref: '#/components/schemas/DeleteEntryResponse'
+              examples:
+                example:
+                  value: 
+                    $ref: './examples/entries/DeleteEntryResponse.xml'
+        '403':
+          $ref: "#/components/responses/Forbidden"
+        '404':
+          $ref: "#/components/responses/NotFound"
+        '503':
+          $ref: "#/components/responses/ServiceUnavailable"
+
+#######################################################################################################################
+## CLAIMS 
+########################################################################################################################
+  '/claims/':
+    post:
+      summary: Criar Reivindicação
+      description: |- 
+          Cria uma nova reivindicação. 
+          
+          Essa operação é feita pelo participante reivindicador a pedido do usuário final.
+          O vínculo atual permanece inalterado, até que haja a confirmação pelo PSP doador.
+
+          Nem todo tipo de chave pode ser reivindicado ou portado. A tabela abaixo define as possibilidades:
+
+            |  compatível?  | OWNERSHIP  | PORTABILITY  |
+            |---------------|:----------:|:------------:|
+            | CPF           |            |      ✓       |
+            | CNPJ          |            |      ✓       |
+            | PHONE         |    ✓      |      ✓       |
+            | EMAIL         |    ✓      |      ✓       |
+            | EVP           |            |              |
+
+      operationId: createClaim
+      tags:
+        - Claim
+      requestBody:
+        content: 
+          application/xml:
+            schema:
+              $ref: '#/components/schemas/CreateClaimRequest'
+            examples:
+                phone-claim:
+                  value: 
+                    $ref: './examples/claims/CreateClaimRequest.xml'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/CreateClaimResponse'
+              examples:
+                example:
+                  value: 
+                    $ref: './examples/claims/CreateClaimResponse.xml'
+        '400':
+          $ref: "#/components/responses/ClaimInvalid"
+        '403': 
+          $ref: "#/components/responses/Forbidden"
+        '503':
+          $ref: "#/components/responses/ServiceUnavailable"
+    get:
+      parameters:
+        - description: ISPB do partipante direto ou indireto interessado
+          schema:
+            type: string
+            pattern: '^[0-9]{8}'
+          name: Participant
+          in: query
+          required: true
+        - description: Restringe a reivindicações em que o participante é doador
+          schema:
+            type: boolean
+          name: IsDonor
+          in: query
+          required: false
+        - description: Restringe a reivindicações em que o participante é reivindicador
+          schema:
+            type: boolean
+          name: IsClaimer
+          in: query
+          required: false
+        - description: Status da reivindicação
+          schema:
+            $ref: "#/components/schemas/ClaimStatus"
+          name: Status
+          in: query
+          required: false
+        - description: Tipo de reivindicação
+          schema:
+            $ref: "#/components/schemas/ClaimType"
+          name: Type
+          in: query
+          required: false
+        - description: Filtra reivindicações com data-hora de modificação maior ou igual a `modifiedAfter`
+          schema:
+            type: string
+            format: date-time
+          name: ModifiedAfter
+          in: query
+          required: false
+        - description: Filtra reivindicações com data-hora de modificação menor ou igual a `modifiedBefore`
+          schema:
+            type: string
+            format: date-time
+          name: ModifiedBefore
+          in: query
+          required: false
+        - description: Número limite de reivindicações a retornar
+          schema:
+            type: integer
+          name: Limit
+          in: query
+          required: false
+      summary: Listar Reivindicações
+      description: |- 
+          Obtém lista de reivindicações em que o participante é doador ou reivindicador.
+          
+          Lista de reivindicações é ordenada de forma crescente pelo campo `LastModified` .
+      operationId: listClaims
+      tags:
+        - Claim
+      responses:
+        '200':
+          description: OK
+          content:
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/ListClaimsResponse'
+              examples:
+                example:
+                  value:
+                    $ref: './examples/claims/ListClaimsResponse.xml'
+        '400':
+          $ref: "#/components/responses/BadRequest"
+        '403': 
+          $ref: "#/components/responses/Forbidden"
+  
+  '/claims/{ClaimId}':
+    parameters:
+      - schema:
+          type: string
+          format: uuid
+        name: ClaimId
+        in: path
+        required: true
+    get:
+      summary: Consultar Reivindicação
+      operationId: getClaim
+      description: Obtém detalhes de uma reivindicação.
+      tags:
+        - Claim
+      responses:
+        '200':
+          description: OK
+          content:
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/GetClaimResponse'
+              examples:
+                example:
+                  value: 
+                    $ref: './examples/claims/GetClaimResponse.xml'
+        '404':
+          $ref: "#/components/responses/NotFound"
+  
+  '/claims/{ClaimId}/acknowledge':
+    parameters:
+      - schema:
+          type: string
+          format: uuid
+        name: ClaimId
+        in: path
+        required: true
+    post:
+      summary: Receber Reivindicação
+      operationId: acknowledgeClaim
+      description: |-
+        Notifica recebimento pelo participante doador de reivindicação com status `OPEN`.
+      tags:
+        - Claim
+      requestBody:
+        content: 
+          application/xml:
+            schema:
+              $ref: '#/components/schemas/AcknowledgeClaimRequest'
+            examples:
+              example:
+                value: 
+                  $ref: './examples/claims/AcknowledgeClaimRequest.xml'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/AcknowledgeClaimResponse'
+              examples:
+                example:
+                  value:
+                    $ref: './examples/claims/AcknowledgeClaimResponse.xml'
+        '403':
+          $ref: "#/components/responses/Forbidden"
+        '404':
+          $ref: "#/components/responses/NotFound"
+        '503':
+          $ref: "#/components/responses/ServiceUnavailable"
+  
+  '/claims/{ClaimId}/confirm':
+    parameters:
+      - schema:
+          type: string
+          format: uuid
+        name: ClaimId
+        in: path
+        required: true
+    post:
+      summary: Confirmar Reivindicação
+      operationId: confirmClaim
+      description: |- 
+        Confirma a operação de reivindicação. 
+        
+        Para reivindicação de posse, status deve ser `WAITING_RESOLUTION` e prazo definido pelo 
+         campo `ResolutionPeriodEnd` deve ter passado.
+
+        Para portabilidade, status deve ser `WAITING_RESOLUTION`.
+
+        A tabela abaixo define, a depender da razão e do tipo, quem pode confirmar.
+
+        <table>
+          <thead>
+            <tr>
+              <th></th>
+              <th colspan="2">OWNERSHIP</th>
+              <th colspan="2">PORTABILITY</th>
+            </tr>
+            <tr>
+              <th>Razão</th>
+              <th>Doador</th>
+              <th>Reivindicador</th>
+              <th>Doador</th>
+              <th>Reivindicador</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>USER_REQUESTED</td>
+              <td></td>
+              <td></td>
+              <td>✓</td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>ACCOUNT_CLOSURE</td>
+              <td></td>
+              <td></td>
+              <td>✓</td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>DEFAULT_OPERATION</td>
+              <td>✓</td>
+              <td></td>
+              <td></td>
+              <td></td>
+            </tr>
+          </tbody>
+        </table>
+
+      tags:
+        - Claim
+      requestBody:
+        content: 
+          application/xml:
+            schema:
+              $ref: '#/components/schemas/ConfirmClaimRequest'
+            examples:
+              example:
+                value: 
+                  $ref: './examples/claims/ConfirmClaimRequest.xml'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/ConfirmClaimResponse'
+              examples:
+                example:
+                  value:
+                    $ref: './examples/claims/ConfirmClaimResponse.xml'
+        '403':
+          $ref: "#/components/responses/Forbidden"
+        '404':
+          $ref: "#/components/responses/NotFound"
+        '503':
+          $ref: "#/components/responses/ServiceUnavailable"
+
+  '/claims/{ClaimId}/cancel':
+    parameters:
+      - schema:
+          type: string
+          format: uuid
+        name: ClaimId
+        in: path
+        required: true
+    post:
+      summary: Cancelar Reivindicação
+      operationId: cancelClaim
+      description: |- 
+        Cancela reivindicação. 
+                
+        Para reivindicação de posse, status deve ser `WAITING_RESOLUTION` ou `CONFIRMED`.
+
+        Para portabilidade, status deve ser `WAITING_RESOLUTION`. Se razão de cancelamento for 
+        `DEFAULT_OPERATION`, prazo definido pelo campo `ResolutionPeriodEnd` deve ter passado.
+
+        A tabela abaixo define, a depender da razão e do tipo, quem pode cancelar.
+
+        <table>
+          <thead>
+            <tr>
+              <th></th>
+              <th colspan="2">OWNERSHIP</th>
+              <th colspan="2">PORTABILITY</th>
+            </tr>
+            <tr>
+              <th>Razão</th>
+              <th>Doador</th>
+              <th>Reivindicador</th>
+              <th>Doador</th>
+              <th>Reivindicador</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>USER_REQUESTED</td>
+              <td></td>
+              <td>✓</td>
+              <td>✓</td>
+              <td>✓</td>
+            </tr>
+            <tr>
+              <td>ACCOUNT_CLOSURE</td>
+              <td></td>
+              <td>✓</td>
+              <td></td>
+              <td>✓</td>
+            </tr>
+            <tr>
+              <td>FRAUD</td>
+              <td>✓</td>
+              <td>✓</td>
+              <td>✓</td>
+              <td>✓</td>
+            </tr>
+            <tr>
+              <td>DEFAULT_OPERATION</td>
+              <td></td>
+              <td></td>
+              <td>✓</td>
+              <td></td>
+            </tr>
+          </tbody>
+        </table>
+
+      tags:
+        - Claim
+      requestBody:
+        content: 
+          application/xml:
+            schema:
+              $ref: '#/components/schemas/CancelClaimRequest'
+            examples:
+              example:
+                value: 
+                  $ref: './examples/claims/CancelClaimRequest.xml'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/CancelClaimResponse'
+              examples:
+                example:
+                  value: 
+                    $ref: './examples/claims/CancelClaimResponse.xml'
+        '403':
+          $ref: "#/components/responses/Forbidden"
+        '404':
+          $ref: "#/components/responses/NotFound"
+        '503':
+          $ref: "#/components/responses/ServiceUnavailable"
+ 
+  '/claims/{ClaimId}/complete':
+    parameters:
+      - schema:
+          type: string
+          format: uuid
+        name: ClaimId
+        in: path
+        required: true
+    post:
+      summary: Concluir Reivindicação
+      operationId: completeClaim
+      description: |- 
+        Conclui reivindicação pelo reivindicador.
+        
+        Para reivindicação de posse, status deve ser `CONFIRMED` e prazo definido pelo campo `CompletionPeriodEnd`
+        deve ter passado.
+        
+        Para portabilidade, status deve ser `CONFIRMED`.
+
+        ### Idempotência
+        A operação de conclusão de reivindicação é idempotente. Valem aqui as mesmas considerações feitas sobre esse tema
+        na operação de [Criar Vínculo](#operation/createEntry).
+
+      tags:
+        - Claim
+      requestBody:
+        content: 
+          application/xml:
+            schema:
+              $ref: '#/components/schemas/CompleteClaimRequest'
+            examples:
+              example:
+                value:
+                  $ref: './examples/claims/CompleteClaimRequest.xml'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/CompleteClaimResponse'
+              examples:
+                example:
+                  value: 
+                    $ref: './examples/claims/CompleteClaimResponse.xml'
+        '403':
+          $ref: "#/components/responses/Forbidden"
+        '404':
+          $ref: "#/components/responses/NotFound"
+        '503':
+          $ref: "#/components/responses/ServiceUnavailable"
+
+#######################################################################################################################
+## RECONCILIATION 
+########################################################################################################################
+  '/sync-verifications/':
+    post:
+      summary: Verificar Sincronismo
+      description: |- 
+          Cria uma verificação de sincronismo para um partipante e tipo de chave.
+      operationId: createSyncVerification
+      tags:
+        - Reconciliation
+      requestBody:
+        content: 
+          application/xml:
+            schema:
+              $ref: '#/components/schemas/CreateSyncVerificationRequest'
+            examples:
+                example:
+                  value:
+                    $ref: './examples/reconciliation/CreateSyncVerificationRequest.xml'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/CreateSyncVerificationResponse'
+              examples:
+                example:
+                  value: 
+                    $ref: './examples/reconciliation/CreateSyncVerificationResponse.xml'
+        '400':
+          $ref: "#/components/responses/BadRequest"
+        '403': 
+          $ref: "#/components/responses/Forbidden"
+        '503':
+          $ref: "#/components/responses/ServiceUnavailable"
+  '/cids/files/':
+    post:
+      summary: Criar Arquivo de CIDs
+      description: |- 
+          Cria um arquivo contendo todos os CIDs de um determinado tipo de chave do participante.
+          O formato do arquivo é um CID por linha ('\n' como EOL), sem ordem definida.
+
+          Geração do arquivo é feita assincronamente.
+      operationId: createCidSetFile
+      tags:
+        - Reconciliation
+      requestBody:
+        content: 
+          application/xml:
+            schema:
+              $ref: '#/components/schemas/CreateCidSetFileRequest'
+            examples:
+                phone:
+                  value: 
+                    $ref: './examples/reconciliation/CreateCidSetFileRequest.xml'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/xml:           
+              schema:
+                $ref: '#/components/schemas/CreateCidSetFileResponse'                                
+              examples:
+                example:
+                  value: 
+                    $ref: './examples/reconciliation/CreateCidSetFileResponse.xml'
+        '400':
+          $ref: "#/components/responses/BadRequest"
+        '403':
+          $ref: "#/components/responses/Forbidden"
+        '503':
+          $ref: "#/components/responses/ServiceUnavailable"
+  '/cids/files/{Id}':
+    get:
+      summary: Consultar Arquivo de CIDs
+      description: Obtém detalhes do arquivo de CIDs requisitado
+      operationId: getCidSetFile
+      tags:
+        - Reconciliation
+      responses:
+        '200':
+          description: OK
+          content:
+            application/xml:           
+              schema:
+                $ref: '#/components/schemas/GetCidSetFileResponse'                                
+              examples:
+                example:
+                  value: 
+                    $ref: './examples/reconciliation/GetCidSetFileResponse.xml'
+        '403': 
+          $ref: "#/components/responses/Forbidden"
+        '404':
+          $ref: "#/components/responses/NotFound"
+  '/cids/events':
+    get:
+      parameters:
+        - description: ISPB do partipante direto ou indireto interessado
+          schema:
+            type: string
+            pattern: '^[0-9]{8}'
+          name: Participant
+          in: query
+          required: true
+        - description: Tipo de chave
+          schema:
+            $ref: "#/components/schemas/KeyType"
+          name: KeyType
+          in: query
+          required: true
+        - description: Filtra eventos com data-hora maior ou igual a `StartTime`
+          schema:
+            type: string
+            format: date-time
+          name: StartTime
+          in: query
+          required: false
+        - description: Filtra eventos com data-hora menor ou igual a `EndTime`
+          schema:
+            type: string
+            format: date-time
+          name: EndTime
+          in: query
+          required: false
+        - description: Número limite de eventos a retornar
+          schema:
+            type: integer
+          name: Limit
+          in: query
+          required: false
+      summary: Listar Eventos de CIDs
+      description: |-
+        Lista os eventos de CIDs para um tipo de chave do participante, ordenados de forma crescente por `Timestamp`.
+
+        A tabela abaixo resume os eventos de CIDs gerados como conseqüência de cada operação.
+
+        |  Operação                                            |  Eventos de CID             |
+        |------------------------------------------------------|-----------------------------|
+        |  [Criar Vínculo](#operation/createEntry)             | adiciona                    |
+        |  [Remover Vínculo](#operation/deleteEntry)           | remove                      |
+        |  [Atualizar Vínculo](#operation/updateEntry)         | remove e adiciona           |
+        |  [Confirmar Reivindicação](#operation/confirmClaim)  | remove (PSP doador)         |
+        |  [Concluir Reivindicação](#operation/completeClaim)  | adiciona (PSP reivindicador)|
+
+      operationId: listCidSetEvents
+      tags:
+        - Reconciliation
+      responses:
+        '200':
+          description: OK
+          content:
+            application/xml:           
+              schema:
+                $ref: '#/components/schemas/ListCidSetEventsResponse'
+              examples:
+                example:
+                  value: 
+                    $ref: './examples/reconciliation/ListCidSetEventsResponse.xml'
+        '400':
+          $ref: "#/components/responses/BadRequest"
+        '403': 
+          $ref: "#/components/responses/Forbidden"
+  '/cids/entries/{Cid}':
+    parameters:
+      - schema:
+          $ref: "#/components/schemas/Cid"
+        name: Cid
+        in: path
+        required: true
+    get:
+      summary: Consultar Vínculo por CID
+      tags:
+        - Reconciliation
+      description: |-
+        Obtém detalhes de um vínculo ativo identificado pelo CID
+      operationId: getEntryByCid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/xml:           
+              schema:
+                $ref: '#/components/schemas/GetEntryByCidResponse'
+              examples:
+                example:
+                  value: 
+                    $ref: './examples/reconciliation/GetEntryByCidResponse.xml'
+        '404':
+          $ref: "#/components/responses/NotFound"
+        '403':
+          $ref: "#/components/responses/Forbidden"
+components:
+  schemas:
+    $ref: './schemas.yaml'
+  responses:
+    $ref: './responses.yaml'

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CreateEntryRequest>
+    <Signature></Signature>
+    <Entry>
+        <Key>+5561988880000</Key>
+        <KeyType>PHONE</KeyType>
+        <Account>
+            <Participant>12345678</Participant>
+            <Branch>00001</Branch>
+            <AccountNumber>0007654321</AccountNumber>
+            <AccountType>CACC</AccountType>
+        </Account>
+        <Owner>
+            <Type>NATURAL_PERSON</Type>
+            <TaxIdNumber>11122233300</TaxIdNumber>
+            <Name>João Silva</Name>
+        </Owner>
+    </Entry>
+    <Reason>USER_REQUESTED</Reason>
+    <RequestId>a946d533-7f22-42a5-9a9b-e87cd55c0f4d</RequestId>
+</CreateEntryRequest>

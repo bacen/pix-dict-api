@@ -1,0 +1,130 @@
+NotFound:
+  description: Not found
+  content:
+    application/problem+xml:
+      schema:
+        $ref: './schemas.yaml#/Problem'
+      examples:
+        example:
+          value: |-
+            <?xml version="1.0" encoding="UTF-8"?>
+            <problem xmlns="urn:ietf:rfc:7807">
+              <type>https://dict.pi.rsfn.net.br/api/v1/error/NotFound</type>
+              <title>Not found</title>
+              <status>404</status>
+              <detail>Entry associated with given key does not exist</detail>
+            </problem> 
+Forbidden:
+  description: Forbidden
+  content:
+    application/problem+xml:
+      schema:
+        $ref: './schemas.yaml#/Problem'
+      examples:
+        example:
+          value: |-
+            <?xml version="1.0" encoding="UTF-8"?>
+            <problem xmlns="urn:ietf:rfc:7807">
+              <type>https://dict.pi.rsfn.net.br/api/v1/error/Forbidden</type>
+              <title>Forbidden</title>
+              <status>403</status>
+              <detail>Participant is not allowed to access this resource</detail>
+            </problem>
+RateLimited:
+  description: Rate-Limited
+  content:
+    application/problem+xml:
+      schema:
+        $ref: './schemas.yaml#/Problem'
+      examples:
+        example:
+          value: |-
+            <?xml version="1.0" encoding="UTF-8"?>
+            <problem xmlns="urn:ietf:rfc:7807">
+              <type>https://dict.pi.rsfn.net.br/api/v1/error/RateLimited</type>
+              <title>Rate limited</title>
+              <status>429</status>
+            </problem>
+ServiceUnavailable:
+  description: Service Unavailable
+  headers:
+    Retry-After:
+      schema:
+        type: integer
+      description: Tempo de espera em segundos sugerido para nova requisição. Ver [rfc7231#section-7.1.3](https://tools.ietf.org/html/rfc7231#section-7.1.3)
+  content:
+    application/problem+xml:
+      schema:
+        $ref: './schemas.yaml#/Problem'
+      examples:
+        example:
+          value: |-
+            <?xml version="1.0" encoding="UTF-8"?>
+            <problem xmlns="urn:ietf:rfc:7807">
+              <type>https://dict.pi.rsfn.net.br/api/v1/error/ServiceUnavailable</type>
+              <title>Service Unavailable</title>
+              <status>503</status>
+              <detail>Service is under scheduled maintenance</detail>
+            </problem>
+ClaimInvalid:
+  description: Claim Invalid
+  content:
+    application/problem+xml:
+      schema:
+        $ref: './schemas.yaml#/Problem'
+      examples:
+        example:
+          value: |-
+            <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+            <problem xmlns="urn:ietf:rfc:7807">
+                <type>https://dict.pi.rsfn.net.br/api/v1/error/ClaimInvalid</type>
+                <title>Claim is invalid</title>
+                <status>400</status>
+                <detail>Claim has invalid fields</detail>
+                <violations>
+                    <violation>
+                        <reason>Value does not match regex '^\+[1-9]\d{1,14}$'</reason>
+                        <value>61988887777</value>
+                        <property>claim.key</property>
+                    </violation>
+                </violations>                    
+            </problem>
+EntryInvalid:
+  description: Entry Invalid
+  content:
+    application/problem+xml:
+      schema:
+        $ref: './schemas.yaml#/Problem'
+      examples:
+        example:
+          value: |-
+            <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+            <problem xmlns="urn:ietf:rfc:7807">
+                <type>https://dict.pi.rsfn.net.br/api/v1/error/EntryInvalid</type>
+                <title>Entry is invalid</title>
+                <status>400</status>
+                <detail>Entry has invalid fields</detail>
+                <violations>
+                    <violation>
+                        <reason>Value does not match regex '^\+[1-9]\d{1,14}$'</reason>
+                        <value>61988887777</value>
+                        <property>entry.key</property>
+                    </violation>
+                </violations>                    
+            </problem>
+BadRequest:
+  description: Bad Request
+  content:
+    application/problem+xml:
+      schema:
+        $ref: './schemas.yaml#/Problem'
+      examples:
+        example:
+          value: |-
+            <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+            <problem xmlns="urn:ietf:rfc:7807">
+                <type>https://dict.pi.rsfn.net.br/api/v1/error/BadRequest</type>
+                <title>Bad Request</title>
+                <status>400</status>
+                <detail>Could not parse request body</detail>
+            </problem>

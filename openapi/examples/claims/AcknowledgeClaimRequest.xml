@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<AcknowledgeClaimRequest>
+    <Signature></Signature>
+    <ClaimId>123e4567-e89b-12d3-a456-426655440000</ClaimId>
+</AcknowledgeClaimRequest>

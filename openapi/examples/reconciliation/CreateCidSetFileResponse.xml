@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CreateCidSetFileResponse>
+    <Signature></Signature>
+    <CidSetFile>
+        <Id>1234</Id>
+        <Status>REQUESTED</Status>
+        <Participant>12345678</Participant>
+        <KeyType>PHONE</KeyType>
+        <RequestTime>2020-01-10T10:00:00Z</RequestTime>
+    </CidSetFile>
+</CreateCidSetFileResponse>

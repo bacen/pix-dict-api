@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CreateClaimRequest>
+    <Signature></Signature>
+    <Claim>
+        <Type>OWNERSHIP</Type>
+        <Key>+5561988887777</Key>
+        <KeyType>PHONE</KeyType>
+        <ClaimerAccount>
+            <Participant>12345678</Participant>
+            <Branch>00001</Branch>
+            <AccountNumber>0007654321</AccountNumber>
+            <AccountType>CACC</AccountType>
+        </ClaimerAccount>
+        <Claimer>
+            <Type>NATURAL_PERSON</Type>
+            <TaxIdNumber>11122233300</TaxIdNumber>
+            <Name>João Silva</Name>
+        </Claimer>
+    </Claim>
+</CreateClaimRequest>
