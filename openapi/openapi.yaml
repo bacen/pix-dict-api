@@ -1,7 +1,7 @@
 openapi: 3.0.0
 info:
   title: DICT API
-  version: '1.0.0-RC2'
+  version: '1.0.0-RC3'
   license:
     name: Apache 2.0
     url: http://www.apache.org/licenses/LICENSE-2.0
@@ -109,6 +109,9 @@ info:
 
     - `RequestIdAlreadyUsed`
       - Requisição foi feita com mesmo `RequestId` de requisição feita anteriormente, mas com parâmetros diferentes.
+
+    - `InvalidReason`
+      - Requisição foi feita com uma razão inválida para a operação.
 
     **Vínculos**
     
@@ -756,10 +759,11 @@ paths:
       description: |- 
         Confirma a operação de reivindicação. 
         
-        Para reivindicação de posse, status deve ser `WAITING_RESOLUTION` e prazo definido pelo 
-         campo `ResolutionPeriodEnd` deve ter passado.
-
-        Para portabilidade, status deve ser `WAITING_RESOLUTION`.
+        Status deve estar em `WAITING_RESOLUTION`.
+        
+        Para reivindicação de posse, caso razão seja `DEFAULT_OPERATION`, o prazo de resolução (`ResolutionPeriodEnd`)
+          deve ter passado. Se a razão informada for `USER_REQUESTED`, o prazo de encerramento (`CompletionPeriodEnd`)
+          será adiantado para permitir o encerramento imediato pelo reivindicador.
 
         A tabela abaixo define, a depender da razão e do tipo, quem pode confirmar.
 
@@ -781,7 +785,7 @@ paths:
           <tbody>
             <tr>
               <td>USER_REQUESTED</td>
-              <td></td>
+              <td>✓</td>
               <td></td>
               <td>✓</td>
               <td></td>
@@ -1056,6 +1060,12 @@ paths:
         '503':
           $ref: "#/components/responses/ServiceUnavailable"
   '/cids/files/{Id}':
+    parameters:
+      - schema:
+          type: integer
+        name: Id
+        in: path
+        required: true
     get:
       summary: Consultar Arquivo de CIDs
       description: Obtém detalhes do arquivo de CIDs requisitado

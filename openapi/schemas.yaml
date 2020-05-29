@@ -220,7 +220,7 @@ ExtendedClaim:
         CompletionPeriodEnd:
           type: string
           format: date-time
-          description: Data-hora quando termina o período de encerramento.
+          description: Data-hora quando termina o período de encerramento. Apenas para reivindicação de posse.
         LastModified:
           type: string
           format: date-time
@@ -230,7 +230,6 @@ ExtendedClaim:
         - Id
         - Status
         - ResolutionPeriodEnd
-        - CompletionPeriodEnd
         - LastModified
 Cid:
   type: string
@@ -274,10 +273,6 @@ SyncVerification:
         - description: Identificador SPB do participante custodiante das chaves
     KeyType:
       $ref: '#/KeyType'
-    SyncVerifierLastModified:
-      type: string
-      format: date-time
-      description: Data-hora do último evento que alterou SyncVerifier
     SyncVerifier:
       allOf:
         - $ref: '#/SyncVerifier'
@@ -285,7 +280,6 @@ SyncVerification:
   required:
     - Participant
     - KeyType
-    - SyncVerifierLastModified
     - SyncVerifier
 ExtendedSyncVerification:
   allOf:
@@ -296,10 +290,15 @@ ExtendedSyncVerification:
       properties:
         Id:
           type: integer
+        SyncVerifierLastModified:
+          type: string
+          format: date-time
+          description: Data-hora do último evento que alterou SyncVerifier
         Result:
           $ref: '#/SyncVerificationResult'
       required:
         - Id
+        - SyncVerifierLastModified
         - Result
 FileStatus:
   type: string
@@ -757,6 +756,9 @@ Problem:
       example: 404
     detail:
       type: string
+    correlationId:
+      type: string
+      description: Identificador de correlação do problema para fins de suporte
     violations:
       type: array
       items:

@@ -2,6 +2,19 @@
 
 Mudanças relevantes na API do DICT serão documentadas aqui.
 
+## [1.0.0-RC3] - 2020-05-29
+### Adicionado
+- Campo opcional correlationId a Problem
+- Erro InvalidReason
+- Possibilidade de confirmar reivindicação com razão USER_REQUESTED
+- Parâmetro Id na operação getCidSetFile (correção da spec)
+
+### Alterado
+- Campo CompletionPeriodEnd deixou de ser preenchido para portabilidade
+
+### Removido
+- Campo SyncVerifierLastModified de CreateSyncVerificationRequest
+
 ## [1.0.0-RC2] - 2020-05-08
 ### Adicionado
 - _Endpoints_ para reconciliação
