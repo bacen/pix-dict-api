@@ -6,7 +6,7 @@
         <KeyType>PHONE</KeyType>
         <Account>
             <Participant>12345678</Participant>
-            <Branch>00001</Branch>
+            <Branch>0001</Branch>
             <AccountNumber>0007654321</AccountNumber>
             <AccountType>CACC</AccountType>
         </Account>

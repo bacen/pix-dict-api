@@ -273,10 +273,10 @@ SyncVerification:
         - description: Identificador SPB do participante custodiante das chaves
     KeyType:
       $ref: '#/KeyType'
-    SyncVerifier:
+    ParticipantSyncVerifier:
       allOf:
         - $ref: '#/SyncVerifier'
-        - description: Verificador de sincronismo
+        - description: Verificador de sincronismo calculado pelo participante
   required:
     - Participant
     - KeyType
@@ -290,15 +290,10 @@ ExtendedSyncVerification:
       properties:
         Id:
           type: integer
-        SyncVerifierLastModified:
-          type: string
-          format: date-time
-          description: Data-hora do último evento que alterou SyncVerifier
         Result:
           $ref: '#/SyncVerificationResult'
       required:
         - Id
-        - SyncVerifierLastModified
         - Result
 FileStatus:
   type: string
@@ -507,8 +502,13 @@ AcknowledgeClaimRequest:
     ClaimId:
       type: string
       format: uuid
+    Participant:
+      allOf:
+        - $ref: '#/ISPB'
+        - description: "Identificador SPB do doador"
   required:
     - ClaimId
+    - Participant
 AcknowledgeClaimResponse:
   type: object
   properties:
@@ -532,8 +532,16 @@ ConfirmClaimRequest:
     ClaimId:
       type: string
       format: uuid
+    Participant:
+      allOf:
+        - $ref: '#/ISPB'
+        - description: "Identificador SPB do doador"
+    Reason:
+      $ref: '#/ClaimOperationReason'
   required:
     - ClaimId
+    - Participant
+    - Reason
 ConfirmClaimResponse:
   type: object
   properties:
@@ -557,10 +565,15 @@ CancelClaimRequest:
     ClaimId:
       type: string
       format: uuid
+    Participant:
+      allOf:
+        - $ref: '#/ISPB'
+        - description: "Identificador SPB do doador ou reivindicador"
     Reason:
       $ref: '#/ClaimOperationReason'
   required:
     - ClaimId
+    - Participant
     - Reason
 CancelClaimResponse:
   type: object
@@ -585,13 +598,15 @@ CompleteClaimRequest:
     ClaimId:
       type: string
       format: uuid
-    Reason:
-      $ref: '#/ClaimOperationReason'
+    Participant:
+      allOf:
+        - $ref: '#/ISPB'
+        - description: "Identificador SPB do reivindicador"
     RequestId:
       $ref: '#/RequestId'
   required:
     - ClaimId
-    - Reason
+    - Participant
     - RequestId
 CompleteClaimResponse:
   type: object
@@ -705,12 +720,17 @@ DeleteEntryRequest:
         namespace: 'http://www.w3.org/2000/09/xmldsig#'
     Key:
       $ref: "#/Key"
+    Participant:
+      allOf:
+        - $ref: '#/ISPB'
+        - description: "Identificador SPB do provedor da conta ao qual a chave está vinculada"
     Reason:
       allOf:
         - $ref: '#/EntryOperationReason'
         - description: "Valores válidos: `USER_REQUESTED`, `ACCOUNT_CLOSURE`, `ENTRY_INACTIVITY` e `RECONCILIATION`"
   required:
     - Key
+    - Participant
     - Reason
 DeleteEntryResponse:
   type: object

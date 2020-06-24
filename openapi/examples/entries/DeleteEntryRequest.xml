@@ -2,5 +2,6 @@
 <DeleteEntryRequest>
     <Signature></Signature>
     <Key>+5561988887777</Key>
+    <Participant>12345678</Participant>
     <Reason>ACCOUNT_CLOSURE</Reason>
 </DeleteEntryRequest>

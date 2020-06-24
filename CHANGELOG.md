@@ -2,6 +2,20 @@
 
 Mudanças relevantes na API do DICT serão documentadas aqui.
 
+## [1.0.0-RC4] - 2020-06-24
+### Adicionado
+- Campo Reason em ConfirmClaimRequest (correção da spec)
+- Campo Participant em AcknowledgeClaimRequest, CancelClaimRequest, ConfirmClaimRequest, CompleteClaimRequest e DeleteEntryRequest
+- Erro InternalServerError (spec omitia)
+- Definições de idempotência para operações de acknowledgeClaim, confirmClaim e cancelClaim
+
+### Alterado
+- Campo SyncVerifier tornou-se ParticipantSyncVerifier em SyncVerification
+
+### Removido
+- Campo Reason de CompleteClaimRequest (correção da spec)
+- Campo SyncVerifierLastModified de ExtendedSyncVerification
+
 ## [1.0.0-RC3] - 2020-05-29
 ### Adicionado
 - Campo opcional correlationId a Problem

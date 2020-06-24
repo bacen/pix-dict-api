@@ -1,7 +1,7 @@
 openapi: 3.0.0
 info:
   title: DICT API
-  version: '1.0.0-RC3'
+  version: '1.0.0-RC4'
   license:
     name: Apache 2.0
     url: http://www.apache.org/licenses/LICENSE-2.0
@@ -96,6 +96,10 @@ info:
     - `RateLimited`
       - Limite de requisições foi atingido. 
         Ver seção sobre [limitação de requisições](#section/Seguranca/Limitacao-de-requisicoes)
+
+    - `InternalServerError`
+      - Condição inesperada ao processar requisição.
+        Ver [rfc7231](https://tools.ietf.org/html/rfc7231#section-6.6.1)
 
     - `ServiceUnavailable`
       - Serviço não está disponível no momento. Serviço solicitado pode estar em manutenção ou fora
@@ -313,11 +317,11 @@ tags:
               '4d4abb9168114e349672b934d16ed201a919cb49e28b7f66a240e62c92ee007f', 
               'fce514f84f37934bc8aa0f861e4f7392273d71b9d18e8209d21e4192a7842058']
 
-      vsync = xor(xor(cids[0], cids[1]), cids[2])  = '996fc1dd3b6b14bcf0c9fe8320eb66d7e2a3fd874ccf767b2e939641b1ea8eaf'
+      vsync = xor(xor(cids[0], cids[1]), cids[2])  = '996fc1dd3b6b14bcf0c9fe8320eb66d7e2a3fd874ccf767b2e939641b1ea8eaf'      
       ````
 
       Observações:
-      - VSync para um conjunto vazio de CIDs é definido como zero.
+      - VSync para um conjunto vazio de CIDs é definido como '0000000000000000000000000000000000000000000000000000000000000000'.
       - Há três CIDs no exemplo acima, representados em hexadecimal. A operação bitwise-XOR é feita com os CIDs em formato binário.
       - bitwise-XOR é comutativo, não importa a ordem da sua aplicação.
       - Para calcular o novo VSync resultante da adição de um CID ao conjunto, basta calcular o XOR desse CID com o VSync atual.
@@ -716,6 +720,11 @@ paths:
       operationId: acknowledgeClaim
       description: |-
         Notifica recebimento pelo participante doador de reivindicação com status `OPEN`.
+
+          ### Idempotência
+          A operação é idempotente. Caso reivindicação já tenha sido recebida e ela esteja ainda com 
+          status `WAITING_RESOLUTION`, será retornada resposta equivalente à primeira requisição.
+
       tags:
         - Claim
       requestBody:
@@ -806,6 +815,10 @@ paths:
             </tr>
           </tbody>
         </table>
+
+          ### Idempotência
+          A operação é idempotente. Caso reivindicação já tenha sido confirmada com os mesmos parâmetros
+          e esteja ainda com status `CONFIRMED`, será retornada resposta equivalente à primeira requisição.
 
       tags:
         - Claim
@@ -903,6 +916,10 @@ paths:
             </tr>
           </tbody>
         </table>
+
+          ### Idempotência
+          A operação é idempotente. Caso reivindicação já tenha sido cancelada com os mesmos parâmetros, 
+          será retornada resposta equivalente à primeira requisição.
 
       tags:
         - Claim

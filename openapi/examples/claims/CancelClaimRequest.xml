@@ -2,5 +2,6 @@
 <CancelClaimRequest>
     <Signature></Signature>
     <ClaimId>123e4567-e89b-12d3-a456-426655440000</ClaimId>
+    <Participant>12345678</Participant>
     <Reason>USER_REQUESTED</Reason>
 </CancelClaimRequest>
