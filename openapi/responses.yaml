@@ -89,6 +89,29 @@ ClaimInvalid:
                     </violation>
                 </violations>                    
             </problem>
+DisputeInvalid:
+  description: Dispute Invalid
+  content:
+    application/problem+xml:
+      schema:
+        $ref: './schemas.yaml#/Problem'
+      examples:
+        example:
+          value: |-
+            <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+            <problem xmlns="urn:ietf:rfc:7807">
+                <type>https://dict.pi.rsfn.net.br/api/v1/error/DisputeInvalid</type>
+                <title>Dispute is invalid</title>
+                <status>400</status>
+                <detail>Dispute has invalid fields</detail>
+                <violations>
+                    <violation>
+                        <reason>EndToEndId does not match regex '^\w{32}'</reason>
+                        <value>9901012341234123412345678900</value>
+                        <property>dispute.endToEndId</property>
+                    </violation>
+                </violations>
+            </problem>
 EntryInvalid:
   description: Entry Invalid
   content:

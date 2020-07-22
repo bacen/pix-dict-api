@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <ListCidSetEventsResponse>
     <Signature></Signature>
+    <HasMoreElements>true</HasMoreElements>
     <Participant>12345678</Participant>
     <KeyType>CPF</KeyType>
     <StartTime>2020-01-10T10:00:00Z</StartTime>

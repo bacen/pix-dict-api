@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CreateDisputeResponse>
+    <Signature></Signature>
+    <Dispute>
+        <DisputedTransactionId>E9999901012341234123412345678900</DisputedTransactionId>
+        <Reason>FRAUD</Reason>
+        <DisputedAmount>1000.00</DisputedAmount>
+        <Details>Transação feita através de QR Code falso em boleto</Details>
+        <Id>91d65e98-97c0-4b0f-b577-73625da1f9fc</Id>
+        <Status>OPEN</Status>
+        <PayerParticipant>99999010</PayerParticipant>
+        <DisputedParticipant>99999011</DisputedParticipant>
+        <CreationTime>2020-01-17T10:00:00Z</CreationTime>
+        <LastModified>2020-01-17T10:00:00Z</LastModified>
+    </Dispute>
+</CreateDisputeResponse>

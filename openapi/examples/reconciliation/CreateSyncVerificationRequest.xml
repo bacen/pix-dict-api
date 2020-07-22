@@ -4,6 +4,6 @@
     <SyncVerification>
         <Participant>12345678</Participant>
         <KeyType>CPF</KeyType>
-        <SyncVerifier>e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855</SyncVerifier>
+        <ParticipantSyncVerifier>e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855</ParticipantSyncVerifier>
     </SyncVerification>
 </CreateSyncVerificationRequest>

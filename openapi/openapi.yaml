@@ -1,7 +1,7 @@
 openapi: 3.0.0
 info:
   title: DICT API
-  version: '1.0.0-RC4'
+  version: '1.0.0-RC5'
   license:
     name: Apache 2.0
     url: http://www.apache.org/licenses/LICENSE-2.0
@@ -28,7 +28,7 @@ info:
     Requisições que incluam ou alterem informações no DICT devem ser assinadas com 
     [XML Digital Signature](https://www.w3.org/2000/09/xmldsig) pelo participante que envia a requisição.
     Requisições de consulta não precisam ser assinadas. Respostas retornadas pelo DICT serão assinadas digitalmente. 
-    As assinaturas **devem** ser validadas pelos clientes da API.
+    As assinaturas **devem** ser validadas pelos clientes da API. 
 
     A assinatura será colocada no elemento `Signature` das requisições e respostas. 
     O `Signature` será [envelopado](https://www.w3.org/TR/xmldsig-core1/#def-SignatureEnveloped) pelo XML que está 
@@ -175,10 +175,29 @@ info:
     - `ClaimCompletionPeriodNotEnded`
       - Para reivindicação de posse, se PSP reivindicador tenta encerrar antes do término do período encerramento.
 
+    **Disputas**
+
+    - `DisputeInvalid`
+      - Existem campos inválidos ao tentar criar nova disputa.
+
+    - `DisputeOperationInvalid`
+      - Status atual da disputa não permite que operação seja feita.
+
+    - `DisputeTransactionNotFound`
+      - A transação disputada não foi encontrada.
+    
+    - `DisputeAlreadyBeingProcessedForTransaction`
+      - Já existe disputa em andamento para a transação informada.
+
+    - `DisputeAlreadyProcessedForTransaction`
+      - Já existe disputa fechada para a transação informada.
+
+    - `DisputePeriodExpired`
+      - O prazo de contestação da transação expirou.
+    
+
 servers:
-  - url: https://dict.pi.rsfn.net.br/api/v1/
-    description: Servidor de Produção
-  - url: https://dict-h.pi.rsfn.net.br/api/v1/
+  - url: https://dict-h.pi.rsfn.net.br/api/v1-rc5/
     description: Servidor de Homologação
 tags:
   - name: Directory
@@ -249,6 +268,7 @@ tags:
       Os participantes deverão monitorar as reivindicações fazendo _polling_ períodico no _endpoint_
       de [listar reivindicações](#operation/listClaims). A periodicidade adequada dependerá 
       das definições de nível de serviço.
+ 
 
   - name: Reconciliation
     x-displayName: Reconciliação
@@ -326,7 +346,30 @@ tags:
       - bitwise-XOR é comutativo, não importa a ordem da sua aplicação.
       - Para calcular o novo VSync resultante da adição de um CID ao conjunto, basta calcular o XOR desse CID com o VSync atual.
         O novo VSync resultante da remoção de um CID é calculado da mesma forma.
-      
+
+  - name: Dispute
+    x-displayName: Disputas
+    description: |-
+      As disputas acontecem quando um pagador contesta uma transação realizada por fraude (FRAUD),
+      erro (ERROR), PLD/FT - Prevenção de Lavagem de Dinheiro e Financiamento de Terrorismo (AML_CFT), 
+      ou a pedido do cliente (USER_REQUESTED). Assim, o participante recebedor tem a possibilidade 
+      de avaliar a procedência da disputa, e prover (ou não) a devolução dos recursos.
+
+      Os estados de uma disputa são:
+        - `OPEN` – Criada pelo participante pagador.
+        - `ACKNOWLEDGED` – Recebida pelo participante recebedor.
+        - `CLOSED` - Encerrada pelo participante recebedor, podendo ter sido aceita ou rejeitada.
+        -	`CANCELLED` – Cancelada pelo participante pagador.
+
+      Disputas são criadas a partir do identificador da transação realizada no SPI (EndToEndId).
+      O prazo máximo para disputar uma transação está no regulamento do DICT.
+
+      Cada participante deve realizar _polling_ periódico na lista de disputas para verificar se 
+      existem novas disputas em que é recebedor. O recebimento da disputa não implica o seu aceite.
+      O tempo máximo de análise também está descrito no regulamento. 
+
+      As disputas por motivo de fraude e PLD/FT são contabilizadas e retornadas ao [consultar vínculo](#operation/getEntry).
+
 paths:
 ########################################################################################################################
 ## ENTRIES 
@@ -394,6 +437,26 @@ paths:
       description: |-
         Obtém um vínculo contendo os detalhes de conta transacional associados a uma chave de endereçamento.
         
+        ### Dados anti-fraude
+        A fim de permitir avaliação de risco de fraude, na consulta de vínculos são fornecidos contadores
+        dos seguintes eventos:
+
+        1. transações realizadas
+        2. disputas de fraude e pld/ft abertas
+        3. disputas de fraude e pld/ft procedentes
+
+        Os eventos são agregados por chave, titular (cpf ou cnpj) e conta transacional em 3 janelas temporais:
+        
+        - últimos 3 dias (d3)
+        - últimos 30 dias (d30) 
+        - últimos 6 meses, sem contar o mês corrente (m6)
+
+        Esses contadores tem ciclo de vida independente do vínculo. Eles não são zerados, mesmo que haja 
+        desativação da chave ou da conta. Se houver troca de titularidade, ou portabilidade, os dados 
+        são herdados pelo novo registro no que couber (titular, chave, ou conta).
+
+        Os contadores de transações realizadas são quantizados. A escala usada é 0, 1, 5, 10, 50, 100, 500, 1000, 5000 ...
+        Arrendonda-se o número para cima, por exemplo: 3 → 5, 190 → 500 .
 
         ### Limitação de requisições
         A política de limitação (_rate-limiting_) funciona com base em cabeçalhos enviados na requisição.
@@ -415,15 +478,15 @@ paths:
       parameters:
         - schema:
             type: string
-            pattern: '^[0-9]{8}'
+            pattern: '^[0-9]{8}$'
             example: '12345678'            
           in: header
-          name: PI-PayerAccountServicer
-          description: 'Identificador SPB do participante onde o pagador possui conta. Usado para _rate-limiting_.'
+          name: PI-RequestingParticipant
+          description: 'Identificador SPB do participante (direto ou indireto) que faz a requisição.'
           required: true
         - schema:
             type: string
-            pattern: '[0-9a-z]{64}'
+            pattern: '[0-9a-f]{64}'
           in: header
           name: PI-PayerId
           description: 'Identificador pseudonimizado do pagador que originou a requisição. Usado para _rate-limiting_.'
@@ -652,6 +715,8 @@ paths:
         - description: Número limite de reivindicações a retornar
           schema:
             type: integer
+            default: 20
+            maximum: 200
           name: Limit
           in: query
           required: false
@@ -660,6 +725,10 @@ paths:
           Obtém lista de reivindicações em que o participante é doador ou reivindicador.
           
           Lista de reivindicações é ordenada de forma crescente pelo campo `LastModified` .
+
+          _Atenção_: Ao percorrer a lista em intervalos de tempo fechados, recomendável para que 
+          não se pule nenhum elemento, alguns elementos retornados poderão se repetir.
+
       operationId: listClaims
       tags:
         - Claim
@@ -690,6 +759,15 @@ paths:
     get:
       summary: Consultar Reivindicação
       operationId: getClaim
+      parameters:
+        - schema:
+            type: string
+            pattern: '^[0-9]{8}$'
+            example: '12345678'            
+          in: header
+          name: PI-RequestingParticipant
+          description: 'Identificador SPB do participante (direto ou indireto) que faz a requisição.'
+          required: true
       description: Obtém detalhes de uma reivindicação.
       tags:
         - Claim
@@ -766,7 +844,7 @@ paths:
       summary: Confirmar Reivindicação
       operationId: confirmClaim
       description: |- 
-        Confirma a operação de reivindicação. 
+        Confirma a operação de reivindicação. Como consequência, vínculo da chave com participante doador é removido.
         
         Status deve estar em `WAITING_RESOLUTION`.
         
@@ -962,7 +1040,7 @@ paths:
       summary: Concluir Reivindicação
       operationId: completeClaim
       description: |- 
-        Conclui reivindicação pelo reivindicador.
+        Conclui reivindicação pelo reivindicador. Como consequência, vínculo da chave com participante reivindicador é criado.
         
         Para reivindicação de posse, status deve ser `CONFIRMED` e prazo definido pelo campo `CompletionPeriodEnd`
         deve ter passado.
@@ -1087,6 +1165,15 @@ paths:
       summary: Consultar Arquivo de CIDs
       description: Obtém detalhes do arquivo de CIDs requisitado
       operationId: getCidSetFile
+      parameters:
+        - schema:
+            type: string
+            pattern: '^[0-9]{8}$'
+            example: '12345678'            
+          in: header
+          name: PI-RequestingParticipant
+          description: 'Identificador SPB do participante (direto ou indireto) que faz a requisição.'
+          required: true
       tags:
         - Reconciliation
       responses:
@@ -1201,6 +1288,296 @@ paths:
           $ref: "#/components/responses/NotFound"
         '403':
           $ref: "#/components/responses/Forbidden"
+
+#######################################################################################################################
+## DISPUTES 
+#######################################################################################################################
+  '/disputes/':
+    post:
+      summary: Criar Disputa
+      description: Cria uma disputa. Utilizado pelo participante do usuário pagador para criar uma disputa sobre uma transação realizada.
+      operationId: createDispute
+      tags:
+        - Dispute
+      requestBody:
+        content: 
+          application/xml:
+            schema:
+              $ref: '#/components/schemas/CreateDisputeRequest'
+            examples:        
+                example:
+                  value:
+                    $ref: './examples/disputes/CreateDisputeRequest.xml'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/CreateDisputeResponse'
+              examples:
+                example:
+                  value: 
+                    $ref: './examples/disputes/CreateDisputeResponse.xml'
+        '400':
+          $ref: "#/components/responses/BadRequest"
+        '403': 
+          $ref: "#/components/responses/Forbidden"        
+        '503':
+          $ref: "#/components/responses/ServiceUnavailable"
+    get:
+      parameters:
+        - description: ISPB do partipante direto ou indireto interessado
+          schema:
+            type: string
+            pattern: '^[0-9]{8}$'
+          name: Participant
+          in: query
+          required: true
+        - description: Restringe a disputas em que o participante é o pagador
+          schema:
+            type: boolean
+          name: IsPayer
+          in: query
+          required: false
+        - description: Restringe a disputas em que o participante é o recebedor
+          schema:
+            type: boolean
+          name: IsDisputed
+          in: query
+          required: false
+        - description: Status da disputa
+          schema:
+            $ref: "#/components/schemas/DisputeStatus"
+          name: Status
+          in: query
+          required: false
+        - description: Inclui os detalhes da disputa
+          schema:
+            type: boolean
+            default: false
+          name: IncludeDetails
+          in: query
+          required: false
+        - description: Filtra disputas com data-hora de modificação maior ou igual a `modifiedAfter`
+          schema:
+            type: string
+            format: date-time
+          name: ModifiedAfter
+          in: query
+          required: false
+        - description: Filtra disputas com data-hora de modificação menor ou igual a `modifiedBefore`
+          schema:
+            type: string
+            format: date-time
+          name: ModifiedBefore
+          in: query
+          required: false
+        - description: Número limite de disputas a retornar
+          schema:
+            type: integer
+            default: 20
+            maximum: 200
+          name: Limit
+          in: query
+          required: false
+      summary: Listar Disputas
+      description: |- 
+          Obtém lista de disputas em que o participante é parte.
+          
+          Lista de disputas é ordenada de forma crescente pelo campo `LastModified` .
+      operationId: listDisputes
+      tags:
+        - Dispute
+      responses:
+        '200':
+          description: OK
+          content:
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/ListDisputesResponse'
+              examples:
+                example:
+                  value:
+                    $ref: './examples/disputes/ListDisputesResponse.xml'
+        '400':
+          $ref: "#/components/responses/BadRequest"
+        '403': 
+          $ref: "#/components/responses/Forbidden"
+  '/disputes/{DisputeId}':
+    parameters:
+      - schema:
+          type: string
+          format: uuid
+        name: DisputeId
+        in: path
+        required: true
+    get:
+      summary: Consultar Disputa
+      operationId: getDispute
+      parameters:
+        - schema:
+            type: string
+            pattern: '^[0-9]{8}$'
+            example: '12345678'            
+          in: header
+          name: PI-RequestingParticipant
+          description: 'Identificador SPB do participante (direto ou indireto) que faz a requisição.'
+          required: true
+      description: Obtém detalhes de uma disputa.
+      tags:
+        - Dispute
+      responses:
+        '200':
+          description: OK
+          content:
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/GetDisputeResponse'
+              examples:
+                example:
+                  value: 
+                    $ref: './examples/disputes/GetDisputeResponse.xml'
+        '404':
+          $ref: "#/components/responses/NotFound"
+  '/disputes/{DisputeId}/acknowledge':
+    parameters:
+      - schema:
+          type: string
+          format: uuid
+        name: DisputeId
+        in: path
+        required: true
+    post:
+      summary: Receber Disputa
+      operationId: acknowledgeDispute
+      description: |-
+        Notifica recebimento pelo participante demandado de uma disputa com status `OPEN`.
+
+          ### Idempotência
+          A operação é idempotente. Caso disputa já tenha sido recebida e ela esteja ainda com 
+          status `ACKNOWLEDGED`, será retornada resposta equivalente à primeira requisição.
+      tags:
+        - Dispute
+      requestBody:
+        content: 
+          application/xml:
+            schema:
+              $ref: '#/components/schemas/AcknowledgeDisputeRequest'
+            examples:
+              example:
+                value: 
+                  $ref: './examples/disputes/AcknowledgeDisputeRequest.xml'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/AcknowledgeDisputeResponse'
+              examples:
+                example:
+                  value:
+                    $ref: './examples/disputes/AcknowledgeDisputeResponse.xml'
+        '403':
+          $ref: "#/components/responses/Forbidden"
+        '404':
+          $ref: "#/components/responses/NotFound"
+        '503':
+          $ref: "#/components/responses/ServiceUnavailable"
+  '/disputes/{DisputeId}/cancel':
+    parameters:
+      - schema:
+          type: string
+          format: uuid
+        name: DisputeId
+        in: path
+        required: true
+    post:
+      summary: Cancelar Disputa
+      operationId: cancelDispute
+      description: |- 
+        Cancela a disputa. Só pode ser realizada pelo participante pagador.
+
+          ### Idempotência
+          A operação é idempotente. Caso disputa já tenha sido cancelada com os mesmos parâmetros, 
+          será retornada resposta equivalente à primeira requisição.
+
+      tags:
+        - Dispute
+      requestBody:
+        content: 
+          application/xml:
+            schema:
+              $ref: '#/components/schemas/CancelDisputeRequest'
+            examples:
+              example:
+                value: 
+                  $ref: './examples/disputes/CancelDisputeRequest.xml'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/CancelDisputeResponse'
+              examples:
+                example:
+                  value: 
+                    $ref: './examples/disputes/CancelDisputeResponse.xml'
+        '403':
+          $ref: "#/components/responses/Forbidden"
+        '404':
+          $ref: "#/components/responses/NotFound"
+        '503':
+          $ref: "#/components/responses/ServiceUnavailable"
+  '/disputes/{DisputeId}/close':
+    parameters:
+      - schema:
+          type: string
+          format: uuid
+        name: DisputeId
+        in: path
+        required: true
+    post:
+      summary: Fechar Disputa
+      operationId: closeDispute
+      description: |- 
+        Fecha a disputa. Só pode ser realizada pelo participante demandado.
+
+          ### Idempotência
+          A operação é idempotente. Caso disputa já tenha sido fechada com os mesmos parâmetros, 
+          será retornada resposta equivalente à primeira requisição.
+
+      tags:
+        - Dispute
+      requestBody:
+        content: 
+          application/xml:
+            schema:
+              $ref: '#/components/schemas/CloseDisputeRequest'
+            examples:
+              example:
+                value: 
+                  $ref: './examples/disputes/CloseDisputeRequest.xml'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/CloseDisputeResponse'
+              examples:
+                example:
+                  value: 
+                    $ref: './examples/disputes/CloseDisputeResponse.xml'
+        '403':
+          $ref: "#/components/responses/Forbidden"
+        '404':
+          $ref: "#/components/responses/NotFound"
+        '503':
+          $ref: "#/components/responses/ServiceUnavailable"
+ 
 components:
   schemas:
     $ref: './schemas.yaml'

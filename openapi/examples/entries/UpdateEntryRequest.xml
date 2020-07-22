@@ -7,6 +7,7 @@
         <Branch>0001</Branch>
         <AccountNumber>0007654321</AccountNumber>
         <AccountType>CACC</AccountType>
+        <OpeningDate>2010-01-10T03:00:00Z</OpeningDate>
     </Account>
     <Reason>USER_REQUESTED</Reason>
 </UpdateEntryRequest>

@@ -2,6 +2,22 @@
 
 Mudanças relevantes na API do DICT serão documentadas aqui.
 
+## [1.0.0-RC5] - 2020-07-22
+### Adicionado
+- Contadores para avaliação de risco de fraude em GetEntryResponse
+- Campo obrigatório OpeningDate em BrazilianAccount
+- Campo HasMoreElements em ListClaimsResponse, ListCidSetEventsResponse
+- Header obrigatório PI-RequestingParticipant para operações getEntry, getClaim e getCidSetFile
+- Possibilidade de remover vínculo com razão FRAUD (correção da spec)
+- _Endpoints_ de disputas
+
+### Alterado
+- Campos CreationDate e KeyOwnershipDate de ExtendedEntry passaram do formato date para date-time
+- Colocada restrição de caracteres para nomes de NaturalPerson e LegalPerson
+
+### Removido
+- Header PI-PayerAccountServicer para operação getEntry
+
 ## [1.0.0-RC4] - 2020-06-24
 ### Adicionado
 - Campo Reason em ConfirmClaimRequest (correção da spec)
