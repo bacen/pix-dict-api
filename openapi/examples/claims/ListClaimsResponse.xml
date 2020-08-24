@@ -21,10 +21,13 @@
             </Claimer>
             <DonorParticipant>87654321</DonorParticipant>
             <Id>123e4567-e89b-12d3-a456-426655440000</Id>
-            <Status>OPEN</Status>
+            <Status>CANCELLED</Status>
             <ResolutionPeriodEnd>2020-01-17T10:00:00Z</ResolutionPeriodEnd>
             <CompletionPeriodEnd>2020-01-17T10:00:00Z</CompletionPeriodEnd>
             <LastModified>2020-01-10T10:00:00Z</LastModified>
+            <ConfirmReason>DEFAULT_OPERATION</ConfirmReason>
+            <CancelReason>FRAUD</CancelReason>
+            <CancelledBy>DONOR</CancelledBy>
         </Claim>
     </Claims>
 </ListClaimsResponse>

@@ -1,7 +1,7 @@
 openapi: 3.0.0
 info:
   title: DICT API
-  version: '1.0.0-RC5'
+  version: '1.0.0-RC6'
   license:
     name: Apache 2.0
     url: http://www.apache.org/licenses/LICENSE-2.0
@@ -175,29 +175,28 @@ info:
     - `ClaimCompletionPeriodNotEnded`
       - Para reivindicação de posse, se PSP reivindicador tenta encerrar antes do término do período encerramento.
 
-    **Disputas**
+    **Relatos de Infração**
 
-    - `DisputeInvalid`
-      - Existem campos inválidos ao tentar criar nova disputa.
+    - `InfractionReportInvalid`
+      - Existem campos inválidos ao tentar criar o relato de infração.
 
-    - `DisputeOperationInvalid`
-      - Status atual da disputa não permite que operação seja feita.
+    - `InfractionReportOperationInvalid`
+      - Status atual do relato não permite que operação seja feita.
 
-    - `DisputeTransactionNotFound`
-      - A transação disputada não foi encontrada.
+    - `InfractionReportTransactionNotFound`
+      - A transação listada no relato de infração não foi encontrada.
     
-    - `DisputeAlreadyBeingProcessedForTransaction`
-      - Já existe disputa em andamento para a transação informada.
+    - `InfractionReportAlreadyBeingProcessedForTransaction`
+      - Já existe um relato de infração em andamento para a transação informada.
 
-    - `DisputeAlreadyProcessedForTransaction`
-      - Já existe disputa fechada para a transação informada.
+    - `InfractionReportAlreadyProcessedForTransaction`
+      - Já existe um relato de infração fechado para a transação informada.
 
-    - `DisputePeriodExpired`
-      - O prazo de contestação da transação expirou.
+    - `InfractionReportPeriodExpired`
+      - O prazo para o relato de infração sobre a transação expirou.
     
-
 servers:
-  - url: https://dict-h.pi.rsfn.net.br/api/v1-rc5/
+  - url: https://dict-h.pi.rsfn.net.br:16522/api/v1-rc6/
     description: Servidor de Homologação
 tags:
   - name: Directory
@@ -347,28 +346,28 @@ tags:
       - Para calcular o novo VSync resultante da adição de um CID ao conjunto, basta calcular o XOR desse CID com o VSync atual.
         O novo VSync resultante da remoção de um CID é calculado da mesma forma.
 
-  - name: Dispute
-    x-displayName: Disputas
+  - name: InfractionReport
+    x-displayName: Relatos de Infração
     description: |-
-      As disputas acontecem quando um pagador contesta uma transação realizada por fraude (FRAUD),
-      erro (ERROR), PLD/FT - Prevenção de Lavagem de Dinheiro e Financiamento de Terrorismo (AML_CFT), 
-      ou a pedido do cliente (USER_REQUESTED). Assim, o participante recebedor tem a possibilidade 
-      de avaliar a procedência da disputa, e prover (ou não) a devolução dos recursos.
+      Relatos de infração servem para reportar transações sob suspeita de fraude (FRAUD) ou PLD/FT
+      (AML_CFT). Podem ser feitas tanto pelo participante debitado quanto pelo creditado na 
+      transação.
 
-      Os estados de uma disputa são:
-        - `OPEN` – Criada pelo participante pagador.
-        - `ACKNOWLEDGED` – Recebida pelo participante recebedor.
-        - `CLOSED` - Encerrada pelo participante recebedor, podendo ter sido aceita ou rejeitada.
-        -	`CANCELLED` – Cancelada pelo participante pagador.
+      Depois de criado, o relato deve ser reconhecido pela outra parte da transação (acknowledge) e,
+      após análise, fechado (close) concordando (AGREED) ou discordando (DISAGREED) da infração. 
 
-      Disputas são criadas a partir do identificador da transação realizada no SPI (EndToEndId).
-      O prazo máximo para disputar uma transação está no regulamento do DICT.
+      O criador do relato pode cancelá-lo a qualquer momento, mesmo depois de fechado. 
+      
+      Relatos de infração são criados a partir do identificador da transação realizada no SPI 
+      (EndToEndId). O prazo máximo para relatar infração em uma transação está no regulamento do DICT.
 
-      Cada participante deve realizar _polling_ periódico na lista de disputas para verificar se 
-      existem novas disputas em que é recebedor. O recebimento da disputa não implica o seu aceite.
+      Cada participante deve realizar _polling_ periódico na lista de relatos para verificar se 
+      existem novos relatos em que é parte. O recebimento do relato não implica em concordância.
       O tempo máximo de análise também está descrito no regulamento. 
 
-      As disputas por motivo de fraude e PLD/FT são contabilizadas e retornadas ao [consultar vínculo](#operation/getEntry).
+      As relatos por motivo de fraude e PLD/FT são contabilizadas e retornadas ao 
+      [consultar vínculo](#operation/getEntry). Se for cancelado, o relato deixa de ser contabilizado 
+      entre os REPORTED_FRAUDS e REPORTED_AML_CFT durante a consulta de vínculos.
 
 paths:
 ########################################################################################################################
@@ -442,8 +441,8 @@ paths:
         dos seguintes eventos:
 
         1. transações realizadas
-        2. disputas de fraude e pld/ft abertas
-        3. disputas de fraude e pld/ft procedentes
+        2. relatos de infrações (Fraude e PLD/FT)
+        3. relatos de infrações com análise e concordância do creditado
 
         Os eventos são agregados por chave, titular (cpf ou cnpj) e conta transacional em 3 janelas temporais:
         
@@ -486,7 +485,7 @@ paths:
           required: true
         - schema:
             type: string
-            pattern: '[0-9a-f]{64}'
+            pattern: '[0-9a-fA-F]{64}'
           in: header
           name: PI-PayerId
           description: 'Identificador pseudonimizado do pagador que originou a requisição. Usado para _rate-limiting_.'
@@ -686,9 +685,11 @@ paths:
           name: IsClaimer
           in: query
           required: false
-        - description: Status da reivindicação
+        - description: Lista de ClaimStatus a serem pesquisados
           schema:
-            $ref: "#/components/schemas/ClaimStatus"
+            type: array
+            items:
+              $ref: "#/components/schemas/ClaimStatus"
           name: Status
           in: query
           required: false
@@ -1261,10 +1262,18 @@ paths:
           $ref: "#/components/responses/Forbidden"
   '/cids/entries/{Cid}':
     parameters:
-      - schema:
+      - name: Cid
+        schema:
           $ref: "#/components/schemas/Cid"
-        name: Cid
         in: path
+        required: true
+      - name: PI-RequestingParticipant
+        schema:
+          type: string
+          pattern: '^[0-9]{8}$'
+          example: '12345678'            
+        in: header
+        description: 'Identificador SPB do participante (direto ou indireto) que faz a requisição.'
         required: true
     get:
       summary: Consultar Vínculo por CID
@@ -1290,35 +1299,36 @@ paths:
           $ref: "#/components/responses/Forbidden"
 
 #######################################################################################################################
-## DISPUTES 
+## INFRACTION-REPORT 
 #######################################################################################################################
-  '/disputes/':
+  '/infraction-reports/':
     post:
-      summary: Criar Disputa
-      description: Cria uma disputa. Utilizado pelo participante do usuário pagador para criar uma disputa sobre uma transação realizada.
-      operationId: createDispute
+      summary: Criar um relato de infração
+      description: |- 
+        Cria um relato de infração. Tanto o participante debitado quanto o creditado podem criar um relato de infração.
+      operationId: createInfractionReport
       tags:
-        - Dispute
+        - InfractionReport
       requestBody:
         content: 
           application/xml:
             schema:
-              $ref: '#/components/schemas/CreateDisputeRequest'
+              $ref: '#/components/schemas/CreateInfractionReportRequest'
             examples:        
                 example:
                   value:
-                    $ref: './examples/disputes/CreateDisputeRequest.xml'
+                    $ref: './examples/infractions/CreateInfractionReportRequest.xml'
       responses:
         '201':
           description: Created
           content:
             application/xml:
               schema:
-                $ref: '#/components/schemas/CreateDisputeResponse'
+                $ref: '#/components/schemas/CreateInfractionReportResponse'
               examples:
                 example:
                   value: 
-                    $ref: './examples/disputes/CreateDisputeResponse.xml'
+                    $ref: './examples/infractions/CreateInfractionReportResponse.xml'
         '400':
           $ref: "#/components/responses/BadRequest"
         '403': 
@@ -1334,46 +1344,48 @@ paths:
           name: Participant
           in: query
           required: true
-        - description: Restringe a disputas em que o participante é o pagador
+        - description: Restringe a relatos em que o participante é o debitado
           schema:
             type: boolean
-          name: IsPayer
+          name: IsDebited
           in: query
           required: false
-        - description: Restringe a disputas em que o participante é o recebedor
+        - description: Restringe a relatos em que o participante é o creditado
           schema:
             type: boolean
-          name: IsDisputed
+          name: IsCredited
           in: query
           required: false
-        - description: Status da disputa
+        - description: Lista de Status a serem pesquisados
           schema:
-            $ref: "#/components/schemas/DisputeStatus"
+            type: array
+            items:
+              $ref: "#/components/schemas/InfractionReportStatus"
           name: Status
           in: query
           required: false
-        - description: Inclui os detalhes da disputa
+        - description: Inclui os detalhes do relato (campos Details)
           schema:
             type: boolean
             default: false
           name: IncludeDetails
           in: query
           required: false
-        - description: Filtra disputas com data-hora de modificação maior ou igual a `modifiedAfter`
+        - description: Filtra relatos com data-hora de modificação maior ou igual a `modifiedAfter`
           schema:
             type: string
             format: date-time
           name: ModifiedAfter
           in: query
           required: false
-        - description: Filtra disputas com data-hora de modificação menor ou igual a `modifiedBefore`
+        - description: Filtra relatos com data-hora de modificação menor ou igual a `modifiedBefore`
           schema:
             type: string
             format: date-time
           name: ModifiedBefore
           in: query
           required: false
-        - description: Número limite de disputas a retornar
+        - description: Número limite de relatos a retornar
           schema:
             type: integer
             default: 20
@@ -1381,40 +1393,40 @@ paths:
           name: Limit
           in: query
           required: false
-      summary: Listar Disputas
+      summary: Listar Relatos de Infração
       description: |- 
-          Obtém lista de disputas em que o participante é parte.
+          Obtém lista de relatos de infração em que o participante é parte.
           
-          Lista de disputas é ordenada de forma crescente pelo campo `LastModified` .
-      operationId: listDisputes
+          Lista de relatos é ordenada de forma crescente pelo campo `LastModified` .
+      operationId: listInfractionReport
       tags:
-        - Dispute
+        - InfractionReport
       responses:
         '200':
           description: OK
           content:
             application/xml:
               schema:
-                $ref: '#/components/schemas/ListDisputesResponse'
+                $ref: '#/components/schemas/ListInfractionReportsResponse'
               examples:
                 example:
                   value:
-                    $ref: './examples/disputes/ListDisputesResponse.xml'
+                    $ref: './examples/infractions/ListInfractionReportsResponse.xml'
         '400':
           $ref: "#/components/responses/BadRequest"
         '403': 
           $ref: "#/components/responses/Forbidden"
-  '/disputes/{DisputeId}':
+  '/infraction-reports/{InfractionReportId}':
     parameters:
       - schema:
           type: string
           format: uuid
-        name: DisputeId
+        name: InfractionReportId
         in: path
         required: true
     get:
-      summary: Consultar Disputa
-      operationId: getDispute
+      summary: Consultar Relato de Infração
+      operationId: getInfractionReport
       parameters:
         - schema:
             type: string
@@ -1424,153 +1436,155 @@ paths:
           name: PI-RequestingParticipant
           description: 'Identificador SPB do participante (direto ou indireto) que faz a requisição.'
           required: true
-      description: Obtém detalhes de uma disputa.
+      description: Obtém detalhes de um relato de infração.
       tags:
-        - Dispute
+        - InfractionReport
       responses:
         '200':
           description: OK
           content:
             application/xml:
               schema:
-                $ref: '#/components/schemas/GetDisputeResponse'
+                $ref: '#/components/schemas/GetInfractionReportResponse'
               examples:
                 example:
                   value: 
-                    $ref: './examples/disputes/GetDisputeResponse.xml'
+                    $ref: './examples/infractions/GetInfractionReportResponse.xml'
         '404':
           $ref: "#/components/responses/NotFound"
-  '/disputes/{DisputeId}/acknowledge':
+  '/infraction-reports/{InfractionReportId}/acknowledge':
     parameters:
       - schema:
           type: string
           format: uuid
-        name: DisputeId
+        name: InfractionReportId
         in: path
         required: true
     post:
-      summary: Receber Disputa
-      operationId: acknowledgeDispute
+      summary: Receber Relato de Infração
+      operationId: acknowledgeInfractionReport
       description: |-
-        Notifica recebimento pelo participante demandado de uma disputa com status `OPEN`.
+        Notifica recebimento pelo participante. Se o relato foi criado pelo Debitado, o 
+        Creditado deve realizar o acknowledge e vice-versa.
 
           ### Idempotência
-          A operação é idempotente. Caso disputa já tenha sido recebida e ela esteja ainda com 
+          A operação é idempotente. Caso o relato já tenha sido recebido e esteja ainda com 
           status `ACKNOWLEDGED`, será retornada resposta equivalente à primeira requisição.
       tags:
-        - Dispute
+        - InfractionReport
       requestBody:
         content: 
           application/xml:
             schema:
-              $ref: '#/components/schemas/AcknowledgeDisputeRequest'
+              $ref: '#/components/schemas/AcknowledgeInfractionReportRequest'
             examples:
               example:
                 value: 
-                  $ref: './examples/disputes/AcknowledgeDisputeRequest.xml'
+                  $ref: './examples/infractions/AcknowledgeInfractionReportRequest.xml'
       responses:
         '200':
           description: OK
           content:
             application/xml:
               schema:
-                $ref: '#/components/schemas/AcknowledgeDisputeResponse'
+                $ref: '#/components/schemas/AcknowledgeInfractionReportResponse'
               examples:
                 example:
                   value:
-                    $ref: './examples/disputes/AcknowledgeDisputeResponse.xml'
+                    $ref: './examples/infractions/AcknowledgeInfractionReportResponse.xml'
         '403':
           $ref: "#/components/responses/Forbidden"
         '404':
           $ref: "#/components/responses/NotFound"
         '503':
           $ref: "#/components/responses/ServiceUnavailable"
-  '/disputes/{DisputeId}/cancel':
+  '/infraction-reports/{InfractionReportId}/cancel':
     parameters:
       - schema:
           type: string
           format: uuid
-        name: DisputeId
+        name: InfractionReportId
         in: path
         required: true
     post:
-      summary: Cancelar Disputa
-      operationId: cancelDispute
+      summary: Cancelar Relato de Infração
+      operationId: cancelInfractionReport
       description: |- 
-        Cancela a disputa. Só pode ser realizada pelo participante pagador.
+        Cancela o relato de infração. Só pode ser realizada pelo participante que criou o relato.
 
           ### Idempotência
-          A operação é idempotente. Caso disputa já tenha sido cancelada com os mesmos parâmetros, 
+          A operação é idempotente. Caso o relato já tenha sido cancelado com os mesmos parâmetros, 
           será retornada resposta equivalente à primeira requisição.
 
       tags:
-        - Dispute
+        - InfractionReport
       requestBody:
         content: 
           application/xml:
             schema:
-              $ref: '#/components/schemas/CancelDisputeRequest'
+              $ref: '#/components/schemas/CancelInfractionReportRequest'
             examples:
               example:
                 value: 
-                  $ref: './examples/disputes/CancelDisputeRequest.xml'
+                  $ref: './examples/infractions/CancelInfractionReportRequest.xml'
       responses:
         '200':
           description: OK
           content:
             application/xml:
               schema:
-                $ref: '#/components/schemas/CancelDisputeResponse'
+                $ref: '#/components/schemas/CancelInfractionReportResponse'
               examples:
                 example:
                   value: 
-                    $ref: './examples/disputes/CancelDisputeResponse.xml'
+                    $ref: './examples/infractions/CancelInfractionReportResponse.xml'
         '403':
           $ref: "#/components/responses/Forbidden"
         '404':
           $ref: "#/components/responses/NotFound"
         '503':
           $ref: "#/components/responses/ServiceUnavailable"
-  '/disputes/{DisputeId}/close':
+  '/infraction-reports/{InfractionReportId}/close':
     parameters:
       - schema:
           type: string
           format: uuid
-        name: DisputeId
+        name: InfractionReportId
         in: path
         required: true
     post:
-      summary: Fechar Disputa
-      operationId: closeDispute
+      summary: Fechar Relato de Infração
+      operationId: closeInfractionReport
       description: |- 
-        Fecha a disputa. Só pode ser realizada pelo participante demandado.
+        Fecha o relato de Infração. Se o relato foi criado pelo Debitado, o 
+        Creditado deve realizar o acknowledge e vice-versa. 
 
           ### Idempotência
-          A operação é idempotente. Caso disputa já tenha sido fechada com os mesmos parâmetros, 
+          A operação é idempotente. Caso o relato já tenha sido fechado com os mesmos parâmetros, 
           será retornada resposta equivalente à primeira requisição.
 
       tags:
-        - Dispute
+        - InfractionReport
       requestBody:
         content: 
           application/xml:
             schema:
-              $ref: '#/components/schemas/CloseDisputeRequest'
+              $ref: '#/components/schemas/CloseInfractionReportRequest'
             examples:
               example:
                 value: 
-                  $ref: './examples/disputes/CloseDisputeRequest.xml'
+                  $ref: './examples/infractions/CloseInfractionReportRequest.xml'
       responses:
         '200':
           description: OK
           content:
             application/xml:
               schema:
-                $ref: '#/components/schemas/CloseDisputeResponse'
+                $ref: '#/components/schemas/CloseInfractionReportResponse'
               examples:
                 example:
                   value: 
-                    $ref: './examples/disputes/CloseDisputeResponse.xml'
+                    $ref: './examples/infractions/CloseInfractionReportResponse.xml'
         '403':
           $ref: "#/components/responses/Forbidden"
         '404':

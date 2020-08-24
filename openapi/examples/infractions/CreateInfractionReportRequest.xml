@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CreateInfractionReportRequest>
+    <Signature></Signature>
+    <Participant>99999010</Participant>
+    <InfractionReport>
+        <TransactionId>E9999901012341234123412345678900</TransactionId>
+        <InfractionType>FRAUD</InfractionType>
+        <ReportDetails>Transação feita através de QR Code falso em boleto</ReportDetails>
+    </InfractionReport>
+</CreateInfractionReportRequest>

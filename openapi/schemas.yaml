@@ -104,6 +104,17 @@
     type: string
     pattern: '^[0-9]{8}$'
     example: '12345678'
+  KeyOwnershipDate:
+    type: string
+    format: date-time
+    description: |- 
+      Data a partir da qual o dono tem posse ininterrupta da chave de endereçamento. 
+      Posse da chave aqui é definida pela existência de um vínculo associando a chave ao dono, 
+      possivelmente com contas distintas.
+  EntryCreationDate:
+    type: string
+    format: date-time
+    description: Data de criação do vínculo.
   Entry:
     type: object
     description: Vínculo entre uma chave de endereçamento, conta transacional e seu dono.
@@ -135,16 +146,15 @@
           name: Entry
         properties:
           CreationDate:
-            type: string
-            format: date-time
-            description: Data de criação do vínculo.
+            $ref: '#/EntryCreationDate'
           KeyOwnershipDate:
+            $ref: '#/KeyOwnershipDate'
+          OpenClaimCreationDate:
             type: string
             format: date-time
             description: |- 
-              Data a partir da qual o dono tem posse ininterrupta da chave de endereçamento. 
-              Posse da chave aqui é definida pela existência de um vínculo associando a chave ao dono, 
-              possivelmente com contas distintas.
+              Caso a chave esteja, no momento, em processo de reivindicação de posse ou portabilidade, 
+              este campo informa quando o processo começou.
         required:
           - Key
           - CreationDate
@@ -236,6 +246,20 @@
             type: string
             format: date-time
             description: Data-hora da última modificação do status da reivindicação
+          ConfirmReason:
+            allOf:
+              - $ref: '#/ClaimOperationReason'
+              - description: Razão utilizada pelo doador para confirmar a operação (caso já tenha sido confirmada)
+          CancelReason:
+            allOf:
+              - $ref: '#/ClaimOperationReason'
+              - description: Razão utilizada pelo participante que cancelou a operação (caso já tenha sido cancelada)
+          CancelledBy:
+            type: string
+            description: Participante que realizou o cancelamento (caso tenha sido cancelada)
+            enum:
+              - DONOR
+              - CLAIMER
         required:
           - Donor
           - Id
@@ -244,7 +268,7 @@
           - LastModified
   Cid:
     type: string
-    pattern: '^[0-9a-f]{64}$'
+    pattern: '^[0-9a-fA-F]{64}$'
     description: Identificador de conteúdo
   CidSetEventType:
     type: string
@@ -273,7 +297,7 @@
       - NOK
   SyncVerifier:
     type: string
-    pattern: '^[0-9a-f]{64}$'
+    pattern: '^[0-9a-fA-F]{64}$'
     example: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'
   SyncVerification:
     type: object
@@ -291,7 +315,7 @@
     required:
       - Participant
       - KeyType
-      - SyncVerifier
+      - ParticipantSyncVerifier
   ExtendedSyncVerification:
     allOf:
       - $ref: '#/SyncVerification'
@@ -349,7 +373,7 @@
       Sha256:
         type: string
         description: SHA256 do conteúdo do arquivo. Presente quando status for `AVAILABLE`.
-        pattern: '^[0-9a-f]{64}$'
+        pattern: '^[0-9a-fA-F]{64}$'
         example: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'
     required:
       - Id
@@ -409,110 +433,91 @@
         description: Contadores de eventos de algum tipo
         items:
           $ref: '#/Counter'
-  DisputeReason:
+  InfractionType:
     type: string
-    description: Motivo da disputa
+    description: Tipo da infração
     enum:
       - FRAUD
-      - ERROR
       - AML_CTF
-      - USER_REQUESTED
-  DisputeStatus:
+  ReportedBy:
+    type: string
+    description: Participante que deu origem ao relato de infração
+    enum:
+      - DEBITED_PARTICIPANT
+      - CREDITED_PARTICIPANT
+  InfractionReportStatus:
     type: string
     enum:
       - OPEN
       - ACKNOWLEDGED
       - CLOSED
       - CANCELLED
-  MoneyAmount:
+  AnalysisResult:
     type: string
-    pattern: '^[0-9]+\.[0-9]{2}$'
-  Dispute:
+    description: Resultado da análise da infração pelo recebedor.
+    enum:
+      - AGREED
+      - DISAGREED
+  AnalysisDetails:
+            description: Detalhes da análise da infração, que possam orientar o pagador dos próximos passos.
+            maxLength: 2000
+  InfractionReport:
     type: object
-    description: Disputa de transação já liquidada
+    description: Relato de infração sobre uma transação
     properties:
-      DisputedTransactionId:
+      TransactionId:
         type: string
-        description: Identificador da transação que está sendo disputada
+        description: Transação com suspeita de infração
         example: 'E9999901012341234123412345678900'
         pattern: '\w{32}'
-      Reason:
-        $ref: '#/DisputeReason'
-      DisputedAmount:
-        $ref: '#/MoneyAmount'
-      Details:
-        description: Detalhes que possam ajudar o participante recebedor a analisar a disputa
+      InfractionType:
+        $ref: '#/InfractionType'
+      ReportDetails:
+        description: Detalhes que possam ajudar o participante recebedor a analisar a suspeita de infração
         maxLength: 2000
     required:
-      - DisputedTransactionId
-      - Reason
-      - DisputedAmount
-  ResolutionResult:
-    type: string
-    description: Resultado da resolução da disputa
-    enum:
-      - ACCEPTED
-      - REJECTED
-  RefundType:
-    type: string
-    description: Tipo de devolução
-    enum:
-      - FULL
-      - PARTIAL
-      - NO_REFUND
-  Resolution:
-    type: object
-    properties:
-      Result:
-        $ref: '#/ResolutionResult'
-      RefundType:
-        $ref: '#/RefundType'
-      RefundTransactionId:
-        type: string
-        description: Identificador da transação de devolução
-        example: 'E9999901012341234123412345678900'
-        pattern: '^\w{32}$'
-      Details:
-        description: Detalhes sobre a análise realizada
-        maxLength: 2000
-    required:
-      - Result
-      - RefundType
-  ExtendedDispute:
+      - TransactionId
+      - InfractionType
+  ExtendedInfractionReport:
     allOf:
-      - $ref: '#/Dispute'
+      - $ref: '#/InfractionReport'
       - type: object
         xml:
-          name: Dispute
+          name: InfractionReport
         properties:
           Id:
             type: string
             format: uuid
+          ReportedBy:
+            $ref: '#/ReportedBy'
           Status:
-            $ref: '#/DisputeStatus'
-          PayerParticipant:
+            $ref: '#/InfractionReportStatus'
+          DebitedParticipant:
             allOf:
               - $ref: '#/ISPB'
-              - description: Identificador SPB do participante do pagador, iniciador da disputa
-          DisputedParticipant:
+              - description: Identificador SPB do participante do pagador da transação
+          CreditedParticipant:
             allOf:
               - $ref: '#/ISPB'
-              - description: Identificador SPB do participante do recebedor, que analisará a disputa
+              - description: Identificador SPB do participante do recebedor da transação
           CreationTime:
             type: string
             format: date-time
-            description: Data-hora da criação da disputa
+            description: Data-hora da criação do relato de infração
           LastModified:
             type: string
             format: date-time
             description: Data-hora da última atualização de status
-          Resolution:
-            $ref: '#/Resolution'
+          AnalysisResult:
+            $ref: '#/AnalysisResult'
+          AnalysisDetails:
+            $ref: '#/AnalysisDetails'
         required:
           - Id
+          - ReportedBy
           - Status
-          - PayerParticipant
-          - DisputedParticipant
+          - DebitedParticipant
+          - CreditedParticipant
           - CreationTime
           - LastModified
 
@@ -635,9 +640,14 @@
         $ref: '#/Cid'
       Entry:
         $ref: '#/ExtendedEntry'
+      RequestId:
+        allOf:
+          - $ref: '#/RequestId'
+          - description: RequestId utilizado na criação do vínculo  
     required:
       - Cid
       - Entry
+      - RequestId
 
 ##### CLAIM REQ-RESP #####  
 
@@ -792,8 +802,14 @@
           namespace: 'http://www.w3.org/2000/09/xmldsig#'
       Claim:
         $ref: '#/ExtendedClaim'
+      EntryCreationDate:
+        $ref: '#/EntryCreationDate'
+      KeyOwnershipDate:
+        $ref: '#/KeyOwnershipDate'
     required:
       - Claim
+      - EntryCreationDate
+      - KeyOwnershipDate
   GetClaimResponse:
     type: object
     properties:
@@ -938,9 +954,9 @@
       - Entry
       - Statistics
 
-##### DISPUTE REQ-RESP ####
+##### INFRACTION-REPORT REQ-RESP ####
   
-  CreateDisputeRequest:
+  CreateInfractionReportRequest:
     type: object
     properties:
       Signature:
@@ -951,10 +967,13 @@
       Participant:
         allOf:
           - $ref: '#/ISPB'
-          - description: "Identificador SPB do participante do pagador, iniciador da disputa"
-      Dispute:
-        $ref: '#/Dispute'
-  CreateDisputeResponse:
+          - description: "Identificador SPB do participante que identificou a infração"
+      InfractionReport:
+        $ref: '#/InfractionReport'
+    required:
+      - Participant
+      - InfractionReport
+  CreateInfractionReportResponse:
     type: object
     properties:
       Signature:
@@ -962,9 +981,11 @@
         xml:
           prefix: ds
           namespace: 'http://www.w3.org/2000/09/xmldsig#'     
-      Dispute:
-        $ref: '#/ExtendedDispute'
-  GetDisputeResponse:
+      InfractionReport:
+        $ref: '#/ExtendedInfractionReport'
+    required:
+      - InfractionReport
+  GetInfractionReportResponse:
     type: object
     properties:
       Signature:
@@ -972,9 +993,11 @@
         xml:
           prefix: ds
           namespace: 'http://www.w3.org/2000/09/xmldsig#'     
-      Dispute:
-        $ref: '#/ExtendedDispute'
-  ListDisputesResponse:
+      InfractionReport:
+        $ref: '#/ExtendedInfractionReport'
+    required:
+      - InfractionReport
+  ListInfractionReportsResponse:
     type: object
     properties:
       Signature:
@@ -985,11 +1008,11 @@
       HasMoreElements:
         type: boolean
         description: Existem mais elementos para iterar
-      Disputes:
+      InfractionReports:
         type: array
         items:
-          $ref: '#/ExtendedDispute'
-  AcknowledgeDisputeRequest:
+          $ref: '#/ExtendedInfractionReport'
+  AcknowledgeInfractionReportRequest:
     type: object
     properties:
       Signature:
@@ -997,15 +1020,18 @@
         xml:
           prefix: ds
           namespace: 'http://www.w3.org/2000/09/xmldsig#'     
-      DisputeId:
+      InfractionReportId:
         type: string
         format: uuid
-        description: ID da disputa
+        description: ID do relato de infração
       Participant:
         allOf:
           - $ref: '#/ISPB'
-          - description: 'Identificador SPB do participante do recebedor, que analisará a disputa'
-  AcknowledgeDisputeResponse:
+          - description: 'Identificador SPB do participante realizando o ACK'
+    required:
+      - InfractionReportId
+      - Participant
+  AcknowledgeInfractionReportResponse:
     type: object
     properties:
       Signature:
@@ -1013,9 +1039,11 @@
         xml:
           prefix: ds
           namespace: 'http://www.w3.org/2000/09/xmldsig#'     
-      Dispute:
-        $ref: '#/ExtendedDispute'
-  CancelDisputeRequest:
+      InfractionReport:
+        $ref: '#/ExtendedInfractionReport'
+    required:
+      - InfractionReport
+  CancelInfractionReportRequest:
     type: object
     properties:
       Signature:
@@ -1023,15 +1051,18 @@
         xml:
           prefix: ds
           namespace: 'http://www.w3.org/2000/09/xmldsig#'     
-      DisputeId:
+      InfractionReportId:
         type: string
         format: uuid
-        description: ID da disputa
+        description: ID do relato de infração
       Participant:
         allOf:
           - $ref: '#/ISPB'
-          - description: "Identificador SPB do participante do pagador, iniciador da disputa"
-  CancelDisputeResponse:
+          - description: "Identificador SPB do participante que reportou a infração"
+    required:
+      - InfractionReportId
+      - Participant
+  CancelInfractionReportResponse:
     type: object
     properties:
       Signature:
@@ -1039,9 +1070,11 @@
         xml:
           prefix: ds
           namespace: 'http://www.w3.org/2000/09/xmldsig#'     
-      Dispute:
-        $ref: '#/ExtendedDispute'
-  CloseDisputeRequest:
+      InfractionReport:
+        $ref: '#/ExtendedInfractionReport'
+    required:
+      - InfractionReport
+  CloseInfractionReportRequest:
     type: object
     properties:
       Signature:
@@ -1049,17 +1082,23 @@
         xml:
           prefix: ds
           namespace: 'http://www.w3.org/2000/09/xmldsig#'     
-      DisputeId:
+      InfractionReportId:
         type: string
         format: uuid
-        description: ID da disputa
+        description: ID do relato de infração
       Participant:
         allOf:
           - $ref: '#/ISPB'
-          - description: 'Identificador SPB do participante pagador, que abriu a disputada'
-      Resolution:
-          $ref: '#/Resolution'  
-  CloseDisputeResponse:
+          - description: 'Identificador SPB do participante recebedor'
+      AnalysisResult:
+        $ref: '#/AnalysisResult'
+      AnalysisDetails:
+        $ref: '#/AnalysisDetails'
+    required:
+      - InfractionReportId
+      - Participant
+      - AnalysisResult
+  CloseInfractionReportResponse:
     type: object
     properties:
       Signature:
@@ -1067,9 +1106,11 @@
         xml:
           prefix: ds
           namespace: 'http://www.w3.org/2000/09/xmldsig#'     
-      Dispute:
-        $ref: '#/ExtendedDispute'
-
+      InfractionReport:
+        $ref: '#/ExtendedInfractionReport'
+    required:
+      - InfractionReport
+      
 #################  
 
   Problem:
@@ -1078,6 +1119,11 @@
       name: 'problem'
       namespace: 'urn:ietf:rfc:7807'
     properties:
+      Signature:
+        type: object
+        xml:
+          prefix: ds
+          namespace: 'http://www.w3.org/2000/09/xmldsig#'
       type:
         type: string
         format: uri

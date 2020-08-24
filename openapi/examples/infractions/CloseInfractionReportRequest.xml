@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CloseInfractionReportRequest>
+    <Signature></Signature>
+    <InfractionReportId>91d65e98-97c0-4b0f-b577-73625da1f9fc</InfractionReportId>
+    <Participant>12345678</Participant>
+    <AnalysisResult>AGREED</AnalysisResult>
+    <AnalysisDetails>
+        Valor bloqueado. Para mais informações, contactar central antifraude em 
+        11 3000-00000, informando ID 9999.
+    </AnalysisDetails>
+</CloseInfractionReportRequest>

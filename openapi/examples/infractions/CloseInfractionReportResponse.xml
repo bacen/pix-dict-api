@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CloseInfractionReportResponse>
+    <Signature></Signature>
+    <InfractionReport>
+        <TransactionId>E9999901012341234123412345678900</TransactionId>
+        <InfractionType>FRAUD</InfractionType>
+        <ReportedBy>DEBITED_PARTICIPANT</ReportedBy>
+        <ReportDetails>Transação feita através de QR Code falso em boleto</ReportDetails>
+        <Id>91d65e98-97c0-4b0f-b577-73625da1f9fc</Id>
+        <Status>CLOSED</Status>
+        <DebitedParticipant>99999010</DebitedParticipant>
+        <CreditedParticipant>99999011</CreditedParticipant>
+        <CreationTime>2020-01-17T10:00:00Z</CreationTime>
+        <LastModified>2020-01-17T10:00:00Z</LastModified>
+        <AnalysisResult>AGREED</AnalysisResult>
+        <AnalysisDetails>
+            Valor bloqueado. Para mais informações, contactar central antifraude em 
+            11 3000-00000, informando ID 9999.
+        </AnalysisDetails>
+    </InfractionReport>
+</CloseInfractionReportResponse>

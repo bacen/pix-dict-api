@@ -2,6 +2,23 @@
 
 Mudanças relevantes na API do DICT serão documentadas aqui.
 
+## [1.0.0-RC6] - 2020-08-24
+### Adicionado
+- _Endpoints_ de InfractionReport
+- Campo OpeningDate em Entry.Account e Claim.ClaimerAccount
+- Campo OpenClaimCreationDate em ExtendedEntry
+- Campos CancelReason, CancelledBy, ConfirmReason em Claim
+- Campos EntryCreationDate e KeyOwnershipDate em CompleteClaimResponse
+- Campo RequestId em GetEntryByCidResponse
+
+### Alterado
+- Parâmetro ClaimStatus no _Endpoint_ listClaims passou a ser multi-valor (array)
+- A fórmula que calcula o erro de EntryLimitExceeded considerava Participant+Branch+AccountNumber, 
+  passou a considerar Participant+Branch+AccountNumber+*AccountType*.
+
+### Removido
+- _Endpoints_ de Disputas (substituído por InfractionReport)
+
 ## [1.0.0-RC5] - 2020-07-22
 ### Adicionado
 - Contadores para avaliação de risco de fraude em GetEntryResponse
