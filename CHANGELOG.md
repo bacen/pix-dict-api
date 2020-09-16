@@ -2,6 +2,19 @@
 
 Mudanças relevantes na API do DICT serão documentadas aqui.
 
+## [1.0.0] - 2020-09-16
+### Adicionado
+- Seção com recomendações de desempenho
+- URL de produção
+- Possibilidade de cancelar reivindicação de posse pelo reivindicador com razão DEFAULT_OPERATION
+- Tipo de erro InfractionReportTransactionNotSettled
+
+### Alterado
+- Atualizadas referências para manual de segurança
+
+### Removido
+- Tipo de erro RequestOnBehalfUnauthorized
+
 ## [1.0.0-RC6] - 2020-08-24
 ### Adicionado
 - _Endpoints_ de InfractionReport

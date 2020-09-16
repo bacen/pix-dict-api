@@ -1,7 +1,7 @@
 openapi: 3.0.0
 info:
   title: DICT API
-  version: '1.0.0-RC6'
+  version: '1.0.0'
   license:
     name: Apache 2.0
     url: http://www.apache.org/licenses/LICENSE-2.0
@@ -10,19 +10,21 @@ info:
     email: suporte.ti@bcb.gov.br
     url: https://www.bcb.gov.br/estabilidadefinanceira/pagamentosinstantaneos
   description: |- 
-    O Diretório de Identificadores de Contas Transacionais - DICT - é o serviço do arranjo PIX que permite 
-    buscar detalhes de contas transacionais  com chaves de endereçamento mais convenientes para quem faz 
+    O Diretório de Identificadores de Contas Transacionais - DICT - é o serviço do arranjo Pix que permite 
+    buscar detalhes de contas transacionais com chaves de endereçamento mais convenientes para quem faz 
     um pagamento. Entre os tipos de chave atualmente disponíveis estão CPF, CNPJ, telefone, e-mail e EVP.
     As informações retornadas pelo DICT permitem ao pagador confirmar a identidade do recebedor, proporcionando 
     uma experiência mais fácil e segura. Permitem também ao PSP do pagador criar a mensagem de instrução de 
     pagamento a ser enviada para o sistema de liquidação com os detalhes de conta do recebedor.
+
+    Para informações adicionais, consulte a [página do Pix](https://www.bcb.gov.br/estabilidadefinanceira/pagamentosinstantaneos).
   
     # Segurança
     ## Autenticação 
     O DICT utiliza autenticação mútua TLS.
 
-    As definições de autenticação para essa API estão especificados no 
-    [manual de segurança PIX](https://www.bcb.gov.br/content/estabilidadefinanceira/forumpireunioes/Anexo%20IV%20-%20Manual%20de%20Seguranca%20PIX%20v2.0.pdf)
+    As definições de autenticação para essa API estão especificadas no 
+    [manual de segurança do Pix](https://www.bcb.gov.br/content/estabilidadefinanceira/cedsfn/Manual%20de%20Seguranca%20do%20PIX%20v3.0.pdf).
    
     ## Assinatura digital
     Requisições que incluam ou alterem informações no DICT devem ser assinadas com 
@@ -35,7 +37,7 @@ info:
     sendo assinado (assinatura é um elemento filho).
 
     Para mais detalhes sobre a forma de construir a assinatura, consulte o
-    [manual de segurança PIX](https://www.bcb.gov.br/content/estabilidadefinanceira/forumpireunioes/Anexo%20IV%20-%20Manual%20de%20Seguranca%20PIX%20v2.0.pdf).
+    [manual de segurança do Pix](https://www.bcb.gov.br/content/estabilidadefinanceira/cedsfn/Manual%20de%20Seguranca%20do%20PIX%20v3.0.pdf).
 
     ## Limitação de requisições
     
@@ -49,6 +51,17 @@ info:
     Cabeçalhos indicando os parâmetros de _rate-limiting_ serão retornados nas requisições. Ver, por exemplo,
     os cabeçalhos retornados ao [consultar vínculo](#operation/getEntry).
 
+    # Recomendações de desempenho
+
+    É altamente recomendável que as conexões HTTP para a comunicação com a API sejam reutilizadas, pois o custo de 
+    estabelecimento de uma conexão mTLS é muito alto em termos de latência. O uso de um _pool_ de conexões HTTP
+    é uma alternativa efetiva para reutilização de conexões. A API retorna o header [`Keep-Alive`](https://tools.ietf.org/html/rfc2068#section-19.7.1.1)
+    com o parâmetro `timeout`. Nele é informado o tempo em segundos que o servidor esperará antes de fechar a conexão caso não ocorram
+    requisições adicionais.
+
+    É recomendável também que se utilize compressão. Para que as respostas da API utilizem compressão, adicione nas 
+    requisições o header `Accept-Encoding: gzip`. O envio de requisições com compressão não é suportado.
+   
     # Evolução da API
 
     As seguintes mudanças são esperadas e consideradas retro-compatíveis (_backwards-compatibility_):
@@ -107,9 +120,6 @@ info:
 
     - `RequestSignatureInvalid`
       - Assinatura digital da requisição enviada é inválida.
-
-    - `RequestOnBehalfUnauthorized`
-      - Participante direto envia requisição em nome de participante indireto para o qual não tem autorização.
 
     - `RequestIdAlreadyUsed`
       - Requisição foi feita com mesmo `RequestId` de requisição feita anteriormente, mas com parâmetros diferentes.
@@ -184,7 +194,10 @@ info:
       - Status atual do relato não permite que operação seja feita.
 
     - `InfractionReportTransactionNotFound`
-      - A transação listada no relato de infração não foi encontrada.
+      - A transação definida no relato de infração não foi encontrada.
+
+    - `InfractionReportTransactionNotSettled`
+      - A transação definida no relato de infração não foi liquidada.
     
     - `InfractionReportAlreadyBeingProcessedForTransaction`
       - Já existe um relato de infração em andamento para a transação informada.
@@ -194,10 +207,12 @@ info:
 
     - `InfractionReportPeriodExpired`
       - O prazo para o relato de infração sobre a transação expirou.
-    
+
 servers:
-  - url: https://dict-h.pi.rsfn.net.br:16522/api/v1-rc6/
-    description: Servidor de Homologação
+  - url: https://dict-h.pi.rsfn.net.br:16522/api/v1/
+    description: Homologação
+  - url: https://dict.pi.rsfn.net.br:16422/api/v1/
+    description: Produção
 tags:
   - name: Directory
     x-displayName: Diretório
@@ -266,7 +281,7 @@ tags:
       **Importante!** 
       Os participantes deverão monitorar as reivindicações fazendo _polling_ períodico no _endpoint_
       de [listar reivindicações](#operation/listClaims). A periodicidade adequada dependerá 
-      das definições de nível de serviço.
+      das definições de nível de serviço. Consulte o [Manual de Tempos do Pix](https://www.bcb.gov.br/content/estabilidadefinanceira/pix/Regulamento_Pix/IX.ManualdeTemposdoPix-versao1.1.pdf).
  
 
   - name: Reconciliation
@@ -350,23 +365,24 @@ tags:
     x-displayName: Relatos de Infração
     description: |-
       Relatos de infração servem para reportar transações sob suspeita de fraude (FRAUD) ou PLD/FT
-      (AML_CFT). Podem ser feitas tanto pelo participante debitado quanto pelo creditado na 
+      (AML_CFT). Podem ser feitas tanto pelo participante debitado quanto pelo creditado na
       transação.
 
       Depois de criado, o relato deve ser reconhecido pela outra parte da transação (acknowledge) e,
-      após análise, fechado (close) concordando (AGREED) ou discordando (DISAGREED) da infração. 
+      após análise, fechado (close) concordando (AGREED) ou discordando (DISAGREED) da infração.
 
-      O criador do relato pode cancelá-lo a qualquer momento, mesmo depois de fechado. 
-      
-      Relatos de infração são criados a partir do identificador da transação realizada no SPI 
+      O criador do relato pode cancelá-lo a qualquer momento, mesmo depois de fechado.
+
+      Relatos de infração são criados a partir do identificador da transação realizada no SPI
       (EndToEndId). O prazo máximo para relatar infração em uma transação está no regulamento do DICT.
 
-      Cada participante deve realizar _polling_ periódico na lista de relatos para verificar se 
+      Cada participante deve realizar _polling_ periódico na lista de relatos para verificar se
       existem novos relatos em que é parte. O recebimento do relato não implica em concordância.
-      O tempo máximo de análise também está descrito no regulamento. 
+      Os níveis de serviço exigidos para as operações com relatos de infração estão definidos no
+      [Manual de Tempos do Pix](https://www.bcb.gov.br/content/estabilidadefinanceira/pix/Regulamento_Pix/IX.ManualdeTemposdoPix-versao1.1.pdf). 
 
-      As relatos por motivo de fraude e PLD/FT são contabilizadas e retornadas ao 
-      [consultar vínculo](#operation/getEntry). Se for cancelado, o relato deixa de ser contabilizado 
+      As relatos por motivo de fraude e PLD/FT são contabilizadas e retornadas ao
+      [consultar vínculo](#operation/getEntry). Se for cancelado, o relato deixa de ser contabilizado
       entre os REPORTED_FRAUDS e REPORTED_AML_CFT durante a consulta de vínculos.
 
 paths:
@@ -454,7 +470,7 @@ paths:
         desativação da chave ou da conta. Se houver troca de titularidade, ou portabilidade, os dados 
         são herdados pelo novo registro no que couber (titular, chave, ou conta).
 
-        Os contadores de transações realizadas são quantizados. A escala usada é 0, 1, 5, 10, 50, 100, 500, 1000, 5000 ...
+        Os contadores de transações realizadas são quantizados. A escala usada é 0, 1, 5, 10, 50, 100, 500, 1000, 5000...
         Arrendonda-se o número para cima, por exemplo: 3 → 5, 190 → 500 .
 
         ### Limitação de requisições
@@ -511,12 +527,12 @@ paths:
                 type: integer
               example: 30
             PI-RateLimit-ParticipantRemaining:
-              description: Número de requisições disponíveis para que limite associado ao `PI-PayerAccountServicer` seja atingido.
+              description: Número de requisições disponíveis para que limite associado ao `PI-RequestingParticipant` seja atingido.
               schema:
                 type: integer
               example: 100
             PI-RateLimit-ParticipantReset:
-              description: Segundos até que limite associado ao `PI-PayerAccountServicer` seja renovado.
+              description: Segundos até que limite associado ao `PI-RequestingParticipant` seja renovado.
               schema:
                 type: integer
               example: 30
@@ -942,7 +958,9 @@ paths:
       description: |- 
         Cancela reivindicação. 
                 
-        Para reivindicação de posse, status deve ser `WAITING_RESOLUTION` ou `CONFIRMED`.
+        Para reivindicação de posse, status deve ser `WAITING_RESOLUTION` ou `CONFIRMED`. Se razão 
+        de cancelamento for `DEFAULT_OPERATION`, prazo de validação de posse da chave do usuário 
+        reivindicador deve ter passado.
 
         Para portabilidade, status deve ser `WAITING_RESOLUTION`. Se razão de cancelamento for 
         `DEFAULT_OPERATION`, prazo definido pelo campo `ResolutionPeriodEnd` deve ter passado.
@@ -989,7 +1007,7 @@ paths:
             <tr>
               <td>DEFAULT_OPERATION</td>
               <td></td>
-              <td></td>
+              <td>✓</td>
               <td>✓</td>
               <td></td>
             </tr>
@@ -1271,7 +1289,7 @@ paths:
         schema:
           type: string
           pattern: '^[0-9]{8}$'
-          example: '12345678'            
+          example: '12345678'
         in: header
         description: 'Identificador SPB do participante (direto ou indireto) que faz a requisição.'
         required: true
@@ -1299,12 +1317,12 @@ paths:
           $ref: "#/components/responses/Forbidden"
 
 #######################################################################################################################
-## INFRACTION-REPORT 
+## INFRACTION-REPORT
 #######################################################################################################################
   '/infraction-reports/':
     post:
-      summary: Criar um relato de infração
-      description: |- 
+      summary: Criar Relato de Infração
+      description: |-
         Cria um relato de infração. Tanto o participante debitado quanto o creditado podem criar um relato de infração.
       operationId: createInfractionReport
       tags:
@@ -1464,11 +1482,11 @@ paths:
       summary: Receber Relato de Infração
       operationId: acknowledgeInfractionReport
       description: |-
-        Notifica recebimento pelo participante. Se o relato foi criado pelo Debitado, o 
-        Creditado deve realizar o acknowledge e vice-versa.
+        Notifica recebimento pelo participante. Se o relato foi criado pelo participante debitado, o
+        creditado deve realizar o recebimento e vice-versa.
 
           ### Idempotência
-          A operação é idempotente. Caso o relato já tenha sido recebido e esteja ainda com 
+          A operação é idempotente. Caso o relato já tenha sido recebido e esteja ainda com
           status `ACKNOWLEDGED`, será retornada resposta equivalente à primeira requisição.
       tags:
         - InfractionReport
@@ -1513,7 +1531,7 @@ paths:
         Cancela o relato de infração. Só pode ser realizada pelo participante que criou o relato.
 
           ### Idempotência
-          A operação é idempotente. Caso o relato já tenha sido cancelado com os mesmos parâmetros, 
+          A operação é idempotente. Caso o relato já tenha sido cancelado com os mesmos parâmetros,
           será retornada resposta equivalente à primeira requisição.
 
       tags:
@@ -1556,11 +1574,11 @@ paths:
       summary: Fechar Relato de Infração
       operationId: closeInfractionReport
       description: |- 
-        Fecha o relato de Infração. Se o relato foi criado pelo Debitado, o 
-        Creditado deve realizar o acknowledge e vice-versa. 
+        Fecha o relato de infração. Se o relato foi criado pelo participante debitado, o
+        creditado deve realizar o fechamento e vice-versa.
 
           ### Idempotência
-          A operação é idempotente. Caso o relato já tenha sido fechado com os mesmos parâmetros, 
+          A operação é idempotente. Caso o relato já tenha sido fechado com os mesmos parâmetros,
           será retornada resposta equivalente à primeira requisição.
 
       tags:

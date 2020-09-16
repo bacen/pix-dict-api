@@ -31,7 +31,7 @@
       OpeningDate:
         type: string
         description: 'Data de abertura da conta. Para o horário, caso não seja conhecido, convenciona-se o início do dia em BRT'
-        format: date-time      
+        format: date-time
     required:
       - Participant
       - AccountNumber
@@ -39,9 +39,9 @@
       - OpeningDate
   Key:
     type: string
-    description: Chave de endereçamento 
+    description: Chave de endereçamento
     maxLength: 77
-    example: '12345678901'      
+    example: '12345678901'
   KeyType:
     type: string
     description: Tipo de chave. _Novos tipos podem surgir_.
@@ -56,10 +56,10 @@
     type: object
     properties:
       Type:
-        type: string          
+        type: string
         default: NATURAL_PERSON
       TaxIdNumber:
-        type: string 
+        type: string
         description: CPF - Cadastro de Pessoa Física
         pattern: '^[0-9]{11}$'
         example: '11122233300'
@@ -70,29 +70,29 @@
         maxLength: 100
         pattern: ^(?=[\u000A\u000D\u0020-\u007E\u0085\u00A0-\u00FF])[\p{L}\- ]+$
     required:
-      - Type      
+      - Type
       - TaxIdNumber
       - Name
   LegalPerson:
-    type: object    
+    type: object
     properties:
       Type:
-        type: string 
+        type: string
         default: LEGAL_PERSON
       TaxIdNumber:
-        type: string 
+        type: string
         description: CNPJ - Cadastro Nacional de Pessoa Jurídica
         example: '11222333000150'
         pattern: '[0-9]{14}'
       Name:
-        type: string 
+        type: string
         description: Razão social.
         maxLength: 100
         example: Padaria Tres Irmãos Ltda
         pattern: ^(?=[\u000A\u000D\u0020-\u007E\u0085\u00A0-\u00FF])[\p{L}\d\'\-\&\.\,\/\\ ]+$
       TradeName:
-        type: string 
-        description: Nome fantasia. 
+        type: string
+        description: Nome fantasia.
         maxLength: 100
         example: Padaria 3 Irmãos
         pattern: ^(?=[\u000A\u000D\u0020-\u007E\u0085\u00A0-\u00FF])[\p{L}\d\'\-\&\.\,\/\\ ]+$
@@ -107,9 +107,9 @@
   KeyOwnershipDate:
     type: string
     format: date-time
-    description: |- 
-      Data a partir da qual o dono tem posse ininterrupta da chave de endereçamento. 
-      Posse da chave aqui é definida pela existência de um vínculo associando a chave ao dono, 
+    description: |-
+      Data a partir da qual o dono tem posse ininterrupta da chave de endereçamento.
+      Posse da chave aqui é definida pela existência de um vínculo associando a chave ao dono,
       possivelmente com contas distintas.
   EntryCreationDate:
     type: string
@@ -153,7 +153,7 @@
             type: string
             format: date-time
             description: |- 
-              Caso a chave esteja, no momento, em processo de reivindicação de posse ou portabilidade, 
+              Caso a chave esteja, no momento, em processo de reivindicação de posse ou portabilidade,
               este campo informa quando o processo começou.
         required:
           - Key
@@ -643,13 +643,13 @@
       RequestId:
         allOf:
           - $ref: '#/RequestId'
-          - description: RequestId utilizado na criação do vínculo  
+          - description: RequestId utilizado na criação do vínculo
     required:
       - Cid
       - Entry
       - RequestId
 
-##### CLAIM REQ-RESP #####  
+##### CLAIM REQ-RESP #####
 
   CreateClaimRequest:
     type: object
@@ -838,7 +838,7 @@
         items:
           $ref: '#/ExtendedClaim'
 
-##### ENTRY REQ-RESP #####  
+##### ENTRY REQ-RESP #####
 
   CreateEntryRequest:
     type: object
@@ -949,13 +949,13 @@
       Entry:
         $ref: '#/ExtendedEntry'
       Statistics:
-        $ref: '#/Statistics'        
+        $ref: '#/Statistics'
     required:
       - Entry
       - Statistics
 
 ##### INFRACTION-REPORT REQ-RESP ####
-  
+
   CreateInfractionReportRequest:
     type: object
     properties:
@@ -1110,7 +1110,7 @@
         $ref: '#/ExtendedInfractionReport'
     required:
       - InfractionReport
-      
+
 #################  
 
   Problem:
