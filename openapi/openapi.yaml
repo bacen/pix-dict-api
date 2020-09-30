@@ -219,7 +219,7 @@ tags:
     description: |- 
       O diretório de identificadores de contas transacionais é um conjunto de vínculos.
       Um vínculo é uma associação entre uma chave de endereçamento, uma conta transacional e seu dono.
-      O dono pode ser uma pessoa física ou uma pessoa jurídica. A chave de endereçamento é usada identificar um vínculo.
+      O dono pode ser uma pessoa física ou uma pessoa jurídica. A chave de endereçamento é usada para identificar um vínculo.
       
       Os tipos de chave suportadas atualmente são as seguintes:
       
