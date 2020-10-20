@@ -68,7 +68,7 @@
         description: Nome completo
         example: João Silva
         maxLength: 100
-        pattern: ^(?=[\u000A\u000D\u0020-\u007E\u0085\u00A0-\u00FF])[\p{L}\- ]+$
+        pattern: ^(?=[\u000A\u000D\u0020-\u007E\u0085\u00A0-\u00FF])[\p{L}\'\- ]+$
     required:
       - Type
       - TaxIdNumber
@@ -261,7 +261,7 @@
               - DONOR
               - CLAIMER
         required:
-          - Donor
+          - DonorParticipant
           - Id
           - Status
           - ResolutionPeriodEnd
@@ -286,6 +286,10 @@
         type: string
         format: date-time
         description: Data-hora do evento
+  CorrelationId:
+    type: string
+    pattern: '^[0-9a-fA-F]{32}$'
+    description: Identificador de correlação para suporte operacional
   RequestId:
     type: string
     format: uuid
@@ -548,8 +552,17 @@
         xml:
           prefix: ds
           namespace: 'http://www.w3.org/2000/09/xmldsig#'
+      ResponseTime:
+        type: string
+        format: date-time
+      CorrelationId:
+        $ref: '#/CorrelationId'
       CidSetFile:
         $ref: '#/CidSetFile'
+    required:
+      - ResponseTime
+      - CorrelationId
+      - CidSetFile
   GetCidSetFileResponse:
     type: object
     properties:
@@ -558,8 +571,17 @@
         xml:
           prefix: ds
           namespace: 'http://www.w3.org/2000/09/xmldsig#'
+      ResponseTime:
+        type: string
+        format: date-time
+      CorrelationId:
+        $ref: '#/CorrelationId'
       CidSetFile:
         $ref: '#/CidSetFile'
+    required:
+      - ResponseTime
+      - CorrelationId
+      - CidSetFile
   CreateSyncVerificationRequest:
     type: object
     properties:
@@ -582,6 +604,11 @@
           namespace: 'http://www.w3.org/2000/09/xmldsig#'
       SyncVerification:
         $ref: '#/ExtendedSyncVerification'
+      ResponseTime:
+        type: string
+        format: date-time
+      CorrelationId:
+        $ref: '#/CorrelationId'
     required:
       - SyncVerification
   ListCidSetEventsResponse:
@@ -592,6 +619,11 @@
         xml:
           prefix: ds
           namespace: 'http://www.w3.org/2000/09/xmldsig#'
+      ResponseTime:
+        type: string
+        format: date-time
+      CorrelationId:
+        $ref: '#/CorrelationId'
       HasMoreElements:
         type: boolean
         description: Existem mais elementos para iterar
@@ -612,7 +644,7 @@
       SyncVerifierStart:
         allOf:
           - $ref: '#/SyncVerifier'
-          - description: Verificador de sincronismo antes do primeiro evento
+          - description: Verificador de sincronismo após primeiro evento
       SyncVerifierEnd:
         allOf:
           - $ref: '#/SyncVerifier'
@@ -622,6 +654,9 @@
         items:
           $ref: '#/CidSetEvent'
     required:
+      - ResponseTime
+      - CorrelationId
+      - HasMoreElements
       - Participant
       - KeyType
       - StartTime
@@ -636,6 +671,11 @@
         xml:
           prefix: ds
           namespace: 'http://www.w3.org/2000/09/xmldsig#'
+      ResponseTime:
+        type: string
+        format: date-time
+      CorrelationId:
+        $ref: '#/CorrelationId'
       Cid:
         $ref: '#/Cid'
       Entry:
@@ -645,6 +685,8 @@
           - $ref: '#/RequestId'
           - description: RequestId utilizado na criação do vínculo
     required:
+      - ResponseTime
+      - CorrelationId
       - Cid
       - Entry
       - RequestId
@@ -671,9 +713,16 @@
         xml:
           prefix: ds
           namespace: 'http://www.w3.org/2000/09/xmldsig#'
+      ResponseTime:
+        type: string
+        format: date-time
+      CorrelationId:
+        $ref: '#/CorrelationId'
       Claim:
         $ref: '#/ExtendedClaim'
     required:
+      - ResponseTime
+      - CorrelationId
       - Claim
   AcknowledgeClaimRequest:
     type: object
@@ -701,9 +750,16 @@
         xml:
           prefix: ds
           namespace: 'http://www.w3.org/2000/09/xmldsig#'
+      ResponseTime:
+        type: string
+        format: date-time
+      CorrelationId:
+        $ref: '#/CorrelationId'
       Claim:
         $ref: '#/ExtendedClaim'
     required:
+      - ResponseTime
+      - CorrelationId
       - Claim
   ConfirmClaimRequest:
     type: object
@@ -734,9 +790,16 @@
         xml:
           prefix: ds
           namespace: 'http://www.w3.org/2000/09/xmldsig#'
+      ResponseTime:
+        type: string
+        format: date-time
+      CorrelationId:
+        $ref: '#/CorrelationId'
       Claim:
         $ref: '#/ExtendedClaim'
     required:
+      - ResponseTime
+      - CorrelationId
       - Claim
   CancelClaimRequest:
     type: object
@@ -767,9 +830,16 @@
         xml:
           prefix: ds
           namespace: 'http://www.w3.org/2000/09/xmldsig#'
+      ResponseTime:
+        type: string
+        format: date-time
+      CorrelationId:
+        $ref: '#/CorrelationId'
       Claim:
         $ref: '#/ExtendedClaim'
     required:
+      - ResponseTime
+      - CorrelationId
       - Claim
   CompleteClaimRequest:
     type: object
@@ -800,6 +870,11 @@
         xml:
           prefix: ds
           namespace: 'http://www.w3.org/2000/09/xmldsig#'
+      ResponseTime:
+        type: string
+        format: date-time
+      CorrelationId:
+        $ref: '#/CorrelationId'
       Claim:
         $ref: '#/ExtendedClaim'
       EntryCreationDate:
@@ -807,6 +882,8 @@
       KeyOwnershipDate:
         $ref: '#/KeyOwnershipDate'
     required:
+      - ResponseTime
+      - CorrelationId
       - Claim
       - EntryCreationDate
       - KeyOwnershipDate
@@ -818,9 +895,16 @@
         xml:
           prefix: ds
           namespace: 'http://www.w3.org/2000/09/xmldsig#'
+      ResponseTime:
+        type: string
+        format: date-time
+      CorrelationId:
+        $ref: '#/CorrelationId'
       Claim:
         $ref: '#/ExtendedClaim'
     required:
+      - ResponseTime
+      - CorrelationId
       - Claim
   ListClaimsResponse:
     type: object
@@ -830,6 +914,11 @@
         xml:
           prefix: ds
           namespace: 'http://www.w3.org/2000/09/xmldsig#'
+      ResponseTime:
+        type: string
+        format: date-time
+      CorrelationId:
+        $ref: '#/CorrelationId'
       HasMoreElements:
         type: boolean
         description: Existem mais elementos para iterar
@@ -837,6 +926,10 @@
         type: array
         items:
           $ref: '#/ExtendedClaim'
+    required:
+      - ResponseTime
+      - CorrelationId
+      - HasMoreElements
 
 ##### ENTRY REQ-RESP #####
 
@@ -888,9 +981,16 @@
         xml:
           prefix: ds
           namespace: 'http://www.w3.org/2000/09/xmldsig#'
+      ResponseTime:
+        type: string
+        format: date-time
+      CorrelationId:
+        $ref: '#/CorrelationId'
       Entry:
         $ref: '#/ExtendedEntry'
     required:
+      - ResponseTime
+      - CorrelationId
       - Entry
   CreateEntryResponse:
     type: object
@@ -900,9 +1000,16 @@
         xml:
           prefix: ds
           namespace: 'http://www.w3.org/2000/09/xmldsig#'
+      ResponseTime:
+        type: string
+        format: date-time
+      CorrelationId:
+        $ref: '#/CorrelationId'
       Entry:
         $ref: '#/ExtendedEntry'
     required:
+      - ResponseTime
+      - CorrelationId
       - Entry
   DeleteEntryRequest:
     type: object
@@ -934,9 +1041,16 @@
         xml:
           prefix: ds
           namespace: 'http://www.w3.org/2000/09/xmldsig#'
+      ResponseTime:
+        type: string
+        format: date-time
+      CorrelationId:
+        $ref: '#/CorrelationId'
       Key:
         $ref: "#/Key"
     required:
+      - ResponseTime
+      - CorrelationId
       - Key
   GetEntryResponse:
     type: object
@@ -946,11 +1060,18 @@
         xml:
           prefix: ds
           namespace: 'http://www.w3.org/2000/09/xmldsig#'
+      ResponseTime:
+        type: string
+        format: date-time
+      CorrelationId:
+        $ref: '#/CorrelationId'
       Entry:
         $ref: '#/ExtendedEntry'
       Statistics:
         $ref: '#/Statistics'
     required:
+      - ResponseTime
+      - CorrelationId
       - Entry
       - Statistics
 
@@ -981,9 +1102,16 @@
         xml:
           prefix: ds
           namespace: 'http://www.w3.org/2000/09/xmldsig#'     
+      ResponseTime:
+        type: string
+        format: date-time
+      CorrelationId:
+        $ref: '#/CorrelationId'
       InfractionReport:
         $ref: '#/ExtendedInfractionReport'
     required:
+      - ResponseTime
+      - CorrelationId
       - InfractionReport
   GetInfractionReportResponse:
     type: object
@@ -993,9 +1121,16 @@
         xml:
           prefix: ds
           namespace: 'http://www.w3.org/2000/09/xmldsig#'     
+      ResponseTime:
+        type: string
+        format: date-time
+      CorrelationId:
+        $ref: '#/CorrelationId'
       InfractionReport:
         $ref: '#/ExtendedInfractionReport'
     required:
+      - ResponseTime
+      - CorrelationId
       - InfractionReport
   ListInfractionReportsResponse:
     type: object
@@ -1005,6 +1140,11 @@
         xml:
           prefix: ds
           namespace: 'http://www.w3.org/2000/09/xmldsig#'
+      ResponseTime:
+        type: string
+        format: date-time
+      CorrelationId:
+        $ref: '#/CorrelationId'
       HasMoreElements:
         type: boolean
         description: Existem mais elementos para iterar
@@ -1012,6 +1152,10 @@
         type: array
         items:
           $ref: '#/ExtendedInfractionReport'
+    required:
+      - ResponseTime
+      - CorrelationId
+      - HasMoreElements
   AcknowledgeInfractionReportRequest:
     type: object
     properties:
@@ -1039,9 +1183,16 @@
         xml:
           prefix: ds
           namespace: 'http://www.w3.org/2000/09/xmldsig#'     
+      ResponseTime:
+        type: string
+        format: date-time
+      CorrelationId:
+        $ref: '#/CorrelationId'
       InfractionReport:
         $ref: '#/ExtendedInfractionReport'
     required:
+      - ResponseTime
+      - CorrelationId
       - InfractionReport
   CancelInfractionReportRequest:
     type: object
@@ -1070,9 +1221,16 @@
         xml:
           prefix: ds
           namespace: 'http://www.w3.org/2000/09/xmldsig#'     
+      ResponseTime:
+        type: string
+        format: date-time
+      CorrelationId:
+        $ref: '#/CorrelationId'
       InfractionReport:
         $ref: '#/ExtendedInfractionReport'
     required:
+      - ResponseTime
+      - CorrelationId
       - InfractionReport
   CloseInfractionReportRequest:
     type: object
@@ -1106,9 +1264,16 @@
         xml:
           prefix: ds
           namespace: 'http://www.w3.org/2000/09/xmldsig#'     
+      ResponseTime:
+        type: string
+        format: date-time
+      CorrelationId:
+        $ref: '#/CorrelationId'
       InfractionReport:
         $ref: '#/ExtendedInfractionReport'
     required:
+      - ResponseTime
+      - CorrelationId
       - InfractionReport
 
 #################  

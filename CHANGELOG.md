@@ -2,6 +2,14 @@
 
 Mudanças relevantes na API do DICT serão documentadas aqui.
 
+## [1.0.1] - 2020-10-20
+### Adicionado
+- campos CorrelationId e ResponseTime em todos Responses
+
+### Alterado
+- Regex para nomes de pessoas físicas passou a permitir apóstrofo (U+0027)
+- Definição de SyncVerifierStart, para refletir como está implementado
+
 ## [1.0.0] - 2020-09-16
 ### Adicionado
 - Seção com recomendações de desempenho

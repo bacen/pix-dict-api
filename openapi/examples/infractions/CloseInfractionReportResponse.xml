@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <CloseInfractionReportResponse>
     <Signature></Signature>
+    <ResponseTime>2020-01-10T10:00:00Z</ResponseTime>
+    <CorrelationId>a9f13566e19f5ca51329479a5bae60c5</CorrelationId>
     <InfractionReport>
         <TransactionId>E9999901012341234123412345678900</TransactionId>
         <InfractionType>FRAUD</InfractionType>
