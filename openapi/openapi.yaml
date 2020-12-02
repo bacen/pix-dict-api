@@ -1,7 +1,7 @@
 openapi: 3.0.0
 info:
   title: DICT API
-  version: '1.0.1'
+  version: '1.1.0'
   license:
     name: Apache 2.0
     url: http://www.apache.org/licenses/LICENSE-2.0
@@ -41,15 +41,77 @@ info:
 
     ## Limitação de requisições
     
-    Para previnir ataques de enumeração, há mecanismo de limitação da quantidade de consultas que podem ser feitas 
-    num espaço de tempo (_rate-limiting_). 
-    A limitação atua em dois níveis, para usuários individuais e para um participante como um todo.
+    Para preservar a estabilidade do serviço, as operações da API do DICT estão sujeitas a políticas de
+    limitação de requisições. Especificamente para a operação de consulta de vínculo, há também 
+    limitação de requisições com a finalidade de prevenir ataques de varredura de dados. O algoritmo
+    usado para implementar as políticas de limitação é o [token bucket](https://en.wikipedia.org/wiki/Token_bucket).
 
-    Para cada um desses níveis, há limite para o número de consultas que não resultam em pagamento.
+    Uma política de limitação tem associado a ela um escopo, que pode ser o usuário final ou o participante.
+    Cada política possui uma taxa de reposição de "fichas", um tamanho de "balde" e uma regra de contagem.
+    A tabela abaixo define as políticas aplicáveis a cada operação da API.
 
-    Quando algum desses limites for atingido, o serviço retornará status `429`, especificando a causa.
-    Cabeçalhos indicando os parâmetros de _rate-limiting_ serão retornados nas requisições. Ver, por exemplo,
-    os cabeçalhos retornados ao [consultar vínculo](#operation/getEntry).
+    |  Política                          | Escopo   | Operações                                                                                            | Taxa de reposição | Tamanho do balde |
+    |------------------------------------|----------|------------------------------------------------------------------------------------------------------|-------------------|------------------|
+    | ENTRIES_READ_USER_ANTISCAN         | USER     | getEntry                                                                                             | 1/3min            |  50              |
+    | ENTRIES_READ_PARTICIPANT_ANTISCAN  | PSP      | getEntry                                                                                             | 1000/min          |  5000            |
+    | ENTRIES_READ                       | PSP      | getEntry                                                                                             | 24000/min         |  120000          |
+    | ENTRIES_WRITE                      | PSP      | createEntry, updateEntry, deleteEntry                                                                | 3600/min          |  18000           |
+    | CLAIMS_READ                        | PSP      | getClaim                                                                                             | 1800/min          |  9000            |
+    | CLAIMS_WRITE                       | PSP      | createClaim, acknowledgeClaim, cancelClaim, confirmClaim, completeClaim                              | 3600/min          |  18000           |
+    | CLAIMS_LIST_WITH_ROLE              | PSP      | listClaims                                                                                           | 20/min            |  100             |
+    | CLAIMS_LIST_WITHOUT_ROLE           | PSP      | listClaims                                                                                           | 5/min             |  25              |
+    | SYNC_VERIFICATIONS_WRITE           | PSP      | createSyncVerification                                                                               | 5/min             |  25              |
+    | CIDS_FILES_WRITE                   | PSP      | createCidSetFile                                                                                     | 20/dia            |  100             |
+    | CIDS_FILES_READ                    | PSP      | getCidSetFile                                                                                        | 5/min             |  25              |
+    | CIDS_EVENTS_LIST                   | PSP      | listCidSetEvents                                                                                     | 20/min            |  100             |
+    | CIDS_ENTRIES_READ                  | PSP      | getEntryByCid                                                                                        | 3600/min          |  18000           |
+    | INFRACTION_REPORTS_READ            | PSP      | getInfractionReport                                                                                  | 1800/min          |  9000            |
+    | INFRACTION_REPORTS_WRITE           | PSP      | createInfractionReport, acknowledgeInfractionReport, cancelInfractionReport, closeInfractionReport   | 3600/min          |  18000           |
+
+
+    ### Regras de contagem das políticas
+
+    - `ENTRIES_READ_USER_ANTISCAN`
+      - Aplicável somente para chaves do tipo EMAIL e PHONE
+      - status 200: subtrai 1
+      - status 404: subtrai 2
+      - pagamento liquidado: adiciona 1
+    
+    - `ENTRIES_READ_PARTICIPANT_ANTISCAN`
+      - Aplicável somente para chaves do tipo EMAIL e PHONE
+      - status 200: subtrai 1
+      - pagamento liquidado/rejeitado: adiciona 1
+    
+    - `CLAIMS_LIST_WITH_ROLE`
+      - Aplicável quando há filtragem por doador/reivindicador
+      - status diferente de 500: subtrai 1
+
+    - `CLAIMS_LIST_WITHOUT_ROLE`
+      - Aplicável quando não há filtragem por doador/reivindicador
+      - status diferente de 500: subtrai 1
+
+    - Demais políticas
+      - status diferente de 500: subtrai 1
+    
+    ### Cabeçalhos
+
+    Nas respostas às operações sujeitas a políticas de limitação, são enviados cabeçalhos HTTP que 
+    informam detalhes sobre o estado dos baldes de fichas associados a cada escopo. 
+    Se para um escopo não existir política associada, os cabeçalhos desse escopo são omitidos.
+
+    | Cabeçalho                          | Descrição                                             |
+    |------------------------------------|-------------------------------------------------------|
+    | PI-RateLimit-ParticipantPolicy     | Nome da política aplicada no escopo do participante   |
+    | PI-RateLimit-ParticipantRemaining  | Quantidade de fichas sobrando                         |
+    | PI-RateLimit-ParticipantReset      | Tempo a esperar em segundos até próxima reposição     |
+    | PI-RateLimit-ClientPolicy          | Nome da política aplicada no escopo do usuário final  |
+    | PI-RateLimit-ClientRemaining       | Quantidade de fichas sobrando                         |
+    | PI-RateLimit-ClientReset           | Tempo a esperar em segundos até próxima reposição     |
+
+    ### Violação de limites
+
+    Caso o limite de uma política seja excedido, o que acontece quando a quantidade de fichas chega 
+    a zero, será retornada uma resposta de erro com status `429`.
 
     # Recomendações de desempenho
 
@@ -64,7 +126,7 @@ info:
 
     # Evolução da API
 
-    As seguintes mudanças são esperadas e consideradas retro-compatíveis (_backwards-compatibility_):
+    As seguintes mudanças são esperadas e consideradas compatíveis:
 
     - Adição de novos recursos na API.
     - Adição de novos parâmetros opcionais a requisições.
@@ -72,10 +134,24 @@ info:
     - Alteração da ordem de campos.
     - Adição de novos elementos em enumerações
 
-    Mudanças compatíveis não geram nova versão da API. 
-    Clientes devem estar preparados para lidar com essas mudanças sem quebrar.
+    ## Versionamento
 
-    Mudanças incompatíveis geram nova versão da API.
+    A versão da API é composta por 4 elementos: _major_, _minor_, _patch_ e _release candidate_.
+
+    A versão que consta no _path_ da URL é o elemento _major_ da versão da API.
+
+    A evolução da versão se dá seguinte forma: 
+
+    - *Major*: alterações incompatíveis, com quebra de contrato (v1.0.0 → v2.0.0)
+    - *Minor*: alterações compatíveis, sem quebra de contrato (v1.1.0 → v1.2.0)
+    - *Patch*: esclarecimentos às especificações, sem alterações funcionais (v1.1.1 → v1.1.2)
+    - *Release candidate*: versões de pré-lançamento de qualquer patch futuro, minor ou major (v1.0.0-rc1 → v1.0.0-rc2)
+
+    Não serão feitas mais que uma evolução _major_ em um período de 6 meses, ressalvado motivo de força maior.
+    Quando houver uma evolução _major_, a versão anterior ficará disponível por no mínimo 1 mês.
+    
+    Alterações sem quebra de contrato e esclarecimentos às especificações podem ocorrer a qualquer momento. 
+    Clientes devem estar preparados para lidar com essas mudanças sem quebrar.
 
     # Tratamento de erros
 
@@ -219,7 +295,7 @@ tags:
     description: |- 
       O diretório de identificadores de contas transacionais é um conjunto de vínculos.
       Um vínculo é uma associação entre uma chave de endereçamento, uma conta transacional e seu dono.
-      O dono pode ser uma pessoa física ou uma pessoa jurídica. A chave de endereçamento é usada identificar um vínculo.
+      O dono pode ser uma pessoa física ou uma pessoa jurídica. A chave de endereçamento é usada para identificar um vínculo.
       
       Os tipos de chave suportadas atualmente são as seguintes:
       
@@ -364,9 +440,8 @@ tags:
   - name: InfractionReport
     x-displayName: Relatos de Infração
     description: |-
-      Relatos de infração servem para reportar transações sob suspeita de fraude (FRAUD) ou PLD/FT
-      (AML_CFT). Podem ser feitas tanto pelo participante debitado quanto pelo creditado na
-      transação.
+      Relatos de infração servem para reportar transações sob suspeita de fraude (FRAUD). 
+      Podem ser feitas tanto pelo participante debitado quanto pelo creditado na transação.
 
       Depois de criado, o relato deve ser reconhecido pela outra parte da transação (acknowledge) e,
       após análise, fechado (close) concordando (AGREED) ou discordando (DISAGREED) da infração.
@@ -381,9 +456,9 @@ tags:
       Os níveis de serviço exigidos para as operações com relatos de infração estão definidos no
       [Manual de Tempos do Pix](https://www.bcb.gov.br/content/estabilidadefinanceira/pix/Regulamento_Pix/IX.ManualdeTemposdoPix-versao1.1.pdf).
 
-      As relatos por motivo de fraude e PLD/FT são contabilizadas e retornadas ao
+      Os relatos por motivo de fraude são contabilizados e retornados ao
       [consultar vínculo](#operation/getEntry). Se for cancelado, o relato deixa de ser contabilizado
-      entre os REPORTED_FRAUDS e REPORTED_AML_CFT durante a consulta de vínculos.
+      em REPORTED_FRAUDS durante a consulta de vínculos.
 
 paths:
 ########################################################################################################################
@@ -457,7 +532,7 @@ paths:
         dos seguintes eventos:
 
         1. transações realizadas
-        2. relatos de infrações (Fraude e PLD/FT)
+        2. relatos de infrações
         3. relatos de infrações com análise e concordância do creditado
 
         Os eventos são agregados por chave, titular (cpf ou cnpj) e conta transacional em 3 janelas temporais:
@@ -692,6 +767,12 @@ paths:
           name: Participant
           in: query
           required: true
+        - description: Inclui adicionalmente as reivindicações de participantes indiretos
+          schema:
+            type: boolean
+          name: IncludeIndirectParticipants
+          in: query
+          required: false
         - description: Restringe a reivindicações em que o participante é doador
           schema:
             type: boolean
@@ -742,12 +823,12 @@ paths:
           required: false
       summary: Listar Reivindicações
       description: |- 
-          Obtém lista de reivindicações em que o participante é doador ou reivindicador.
+          Obtém uma lista de reivindicações, ordenada de forma crescente pelo campo `LastModified`, de acordo com os filtros passados.
           
-          Lista de reivindicações é ordenada de forma crescente pelo campo `LastModified` .
-
-          _Atenção_: Ao percorrer a lista em intervalos de tempo fechados, recomendável para que 
-          não se pule nenhum elemento, alguns elementos retornados poderão se repetir.
+          Observações:
+          - Ao percorrer a lista em intervalos de tempo fechados, recomendável para que não se pule nenhum elemento, alguns elementos retornados poderão se repetir.
+          - O comportamento dos filtros `isDonor` e `isClaimer`, quando os valores passados são iguais, é disjuntivo: são retornadas reinvidicações em que 
+          o participante é doador OU reivindicador. 
 
       operationId: listClaims
       tags:

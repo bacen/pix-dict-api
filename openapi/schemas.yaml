@@ -68,7 +68,7 @@
         description: Nome completo
         example: João Silva
         maxLength: 100
-        pattern: ^(?=[\u000A\u000D\u0020-\u007E\u0085\u00A0-\u00FF])[\p{L}\'\- ]+$
+        pattern: ^([A-Za-zÀ-ÖØ-öø-ÿ' -]+)$
     required:
       - Type
       - TaxIdNumber
@@ -89,13 +89,13 @@
         description: Razão social.
         maxLength: 100
         example: Padaria Tres Irmãos Ltda
-        pattern: ^(?=[\u000A\u000D\u0020-\u007E\u0085\u00A0-\u00FF])[\p{L}\d\'\-\&\.\,\/\\ ]+$
+        pattern: ^([A-Za-zÀ-ÖØ-öø-ÿ,.@:&*+_<>()!?/\\$%\d' -]+)$
       TradeName:
         type: string
         description: Nome fantasia.
         maxLength: 100
         example: Padaria 3 Irmãos
-        pattern: ^(?=[\u000A\u000D\u0020-\u007E\u0085\u00A0-\u00FF])[\p{L}\d\'\-\&\.\,\/\\ ]+$
+        pattern: ^([A-Za-zÀ-ÖØ-öø-ÿ,.@:&*+_<>()!?/\\$%\d' -]+)$
     required:
       - Type
       - TaxIdNumber
@@ -341,6 +341,7 @@
       - REQUESTED
       - PROCESSING
       - AVAILABLE
+      - UNAVAILABLE
       - ERROR
     example: AVAILABLE
   CidSetFile:
@@ -397,9 +398,7 @@
         enum:
           - SETTLEMENTS
           - REPORTED_FRAUDS
-          - REPORTED_AML_CFT
           - CONFIRMED_FRAUDS
-          - CONFIRMED_AML_CFT
       by:
         type: string
         description: Agregador (chave, dono ou conta).
@@ -442,7 +441,6 @@
     description: Tipo da infração
     enum:
       - FRAUD
-      - AML_CTF
   ReportedBy:
     type: string
     description: Participante que deu origem ao relato de infração

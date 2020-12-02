@@ -2,6 +2,20 @@
 
 Mudanças relevantes na API do DICT serão documentadas aqui.
 
+## [1.1.0] - 2020-12-02
+### Removido
+- Tipo de infração AML_CTF
+- Contadores de infração para os tipos REPORTED_AML_CFT e CONFIRMED_AML_CFT
+
+### Adicionado
+- UNAVAILABLE em FileStatus
+- Novas políticas de limitação de requisições
+- Seção sobre versionamento da API
+- Parâmetro IncludeIndirectParticipants na operação de listClaims
+
+### Alterado
+- Simplificação das expressões regulares de nomes de NaturalPerson e LegalPerson
+
 ## [1.0.1] - 2020-10-20
 ### Adicionado
 - campos CorrelationId e ResponseTime em todos Responses
