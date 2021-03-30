@@ -1,7 +1,7 @@
 openapi: 3.0.0
 info:
   title: DICT API
-  version: '1.1.0'
+  version: '1.2.0'
   license:
     name: Apache 2.0
     url: http://www.apache.org/licenses/LICENSE-2.0
@@ -230,6 +230,9 @@ info:
       - Existe uma reivindicação com status diferente de concluída ou cancelada para a chave 
         do vínculo. Enquanto estiver nessa situação, o vínculo não pode ser excluído.
 
+    - `EntryTaxIdNumberByDifferentOwner`
+      - CPF ou CNPJ do vínculo diferente do CPF ou CNPJ do dono da chave.
+
     **Reivindicações**
 
     - `ClaimInvalid`
@@ -289,27 +292,43 @@ servers:
     description: Homologação
   - url: https://dict.pi.rsfn.net.br:16422/api/v1/
     description: Produção
+
 tags:
   - name: Directory
     x-displayName: Diretório
     description: |- 
       O diretório de identificadores de contas transacionais é um conjunto de vínculos.
       Um vínculo é uma associação entre uma chave de endereçamento, uma conta transacional e seu dono.
-      O dono pode ser uma pessoa física ou uma pessoa jurídica. A chave de endereçamento é usada para identificar um vínculo.
-      
+      O dono pode ser uma pessoa física ou uma pessoa jurídica. A chave de endereçamento é usada para identificar unicamente um vínculo.
+
+      Exemplo de vínculo:
+
+      |  Chave          | Conta                                 | Dono                              |
+      |-----------------|---------------------------------------|-----------------------------------|
+      | +5510998765432  | Banco Fictício/Ag.7263-4/Cc.748627-1  | José João da Silva                |
+
+  - name: Key
+    x-displayName: Chave
+    description: |-
+      Uma chave transacional é uma sequência de caracteres que identifica um vínculo de forma única no diretório de identificadores.
+      A existência de uma determinada chave no diretório implica diretamente na existência de um vínculo.
+
       Os tipos de chave suportadas atualmente são as seguintes:
-      
+
       |  Tipo         | Exp. regular                                                                                               | Exemplo                              | Comentário                                                                |
       |---------------|------------------------------------------------------------------------------------------------------------|--------------------------------------|---------------------------------------------------------------------------|
       | CPF           |  ^\[0-9\]{11}$                                                                                             | 12345678901                          |                                                                           |
       | CNPJ          |  ^\[0-9\]{14}$                                                                                             | 12345678901234                       |                                                                           |
       | PHONE         |  ^\\+\[1-9\]\[0-9\]\d{1,14}$                                                                               | +5510998765432                       |                                                                           |
-      | EMAIL         |  [e-mails válidos W3C HTML5](https://html.spec.whatwg.org/multipage/input.html#valid-e-mail-address)       | pix@bcb.gov.br                       | E-mail deve possuir no máximo 77 caracteres e deve ser em minúsculo       | 
+      | EMAIL         |  [e-mails válidos W3C HTML5](https://html.spec.whatwg.org/multipage/input.html#valid-e-mail-address)       | pix@bcb.gov.br                       | E-mail deve possuir no máximo 77 caracteres e deve ser em minúsculo       |
       | EVP           |  [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}                                              | 123e4567-e89b-12d3-a456-426655440000 | Endereço Virtual de Pagamento é um tipo de chave é gerado pelo DICT       |
 
 
       Novos tipos de chave poderão vir a ser adicionados no futuro. Logo, é importante que a implementação de clientes
       seja flexível, permitindo a adição de novos tipos de chave.
+
+      Apesar da existência de uma chave estar sempre relacionada a um vínculo, é possível a realização de consultas de existência
+      de chaves.
 
   - name: Claim
     x-displayName: Reivindicação
@@ -633,9 +652,9 @@ paths:
       description: |-
         Atualiza um vínculo. 
         
-        A ser utilizado no cenário de atualização da informação da conta de um cliente, permanecendo este no mesmo PSP.
-        Somente pode ser atualizada a informação de conta do vínculo. Outras atualizações do vínculo devem ser feitas
-        por exclusão/inclusão do vínculo, portabilidade ou reivindicação de posse, a depender da situação.
+        A ser utilizado no cenário de atualização da informação da conta ou de nome de um cliente, permanecendo este no mesmo PSP.
+        Somente podem ser atualizadas as informações de conta do vínculo ou nome do cliente. Outras atualizações do vínculo devem
+        ser feitas por exclusão/inclusão do vínculo, portabilidade ou reivindicação de posse, a depender da situação.
         
       operationId: updateEntry
       requestBody:
@@ -706,6 +725,50 @@ paths:
           $ref: "#/components/responses/NotFound"
         '503':
           $ref: "#/components/responses/ServiceUnavailable"
+
+########################################################################################################################
+## KEYS
+########################################################################################################################
+
+  '/keys/check':
+
+    post:
+      summary: Verificar existência de chaves
+      operationId: checkKeys
+      description: Consulta a existência de um conjunto de chaves no diretório de identificadores.
+      tags:
+        - Key
+      requestBody:
+        content:
+          application/xml:
+            schema:
+              $ref: '#/components/schemas/CheckKeysRequest'
+            examples:
+              example:
+                value:
+                  $ref: './examples/keys/CheckKeysRequest.xml'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/CheckKeysResponse'
+              examples:
+                example:
+                  value:
+                    $ref: './examples/keys/CheckKeysResponse.xml'
+        '403':
+          $ref: "#/components/responses/Forbidden"
+        '404':
+          $ref: "#/components/responses/NotFound"
+        '503':
+          $ref: "#/components/responses/ServiceUnavailable"
+      servers:
+        - url: https://dict-np-h.pi.rsfn.net.br:16532/api-np/v1/
+          description: Homologação
+        - url: https://dict-np.pi.rsfn.net.br:16432/api-np/v1/
+          description: Produção
 
 #######################################################################################################################
 ## CLAIMS 
@@ -821,6 +884,20 @@ paths:
           name: Limit
           in: query
           required: false
+#        - description: Cursor de deslocamento em consultas. Permite o escape linear de registros.
+#          schema:
+#            type: integer
+#            default: 0
+#          name: Offset
+#          in: query
+#          required: false
+        - description: Indica inclusão de reivindicações de participantes indiretos no resultado da consulta.
+          schema:
+            type: boolean
+            default: false
+          name: IncludeIndirectParticipants
+          in: query
+          required: false
       summary: Listar Reivindicações
       description: |- 
           Obtém uma lista de reivindicações, ordenada de forma crescente pelo campo `LastModified`, de acordo com os filtros passados.
@@ -828,7 +905,9 @@ paths:
           Observações:
           - Ao percorrer a lista em intervalos de tempo fechados, recomendável para que não se pule nenhum elemento, alguns elementos retornados poderão se repetir.
           - O comportamento dos filtros `isDonor` e `isClaimer`, quando os valores passados são iguais, é disjuntivo: são retornadas reinvidicações em que 
-          o participante é doador OU reivindicador. 
+          o participante é doador OU reivindicador.
+          - A atualização de informações de reinvindicações para listagens é _assíncrona_ em relação às operações de inclusão e atualização de registros, sendo assim,
+          é possível haver um retardo de _5 segundos_ até que os dados incluídos ou alterados constem na consulta.
 
       operationId: listClaims
       tags:
@@ -1344,6 +1423,10 @@ paths:
         |  [Confirmar Reivindicação](#operation/confirmClaim)  | remove (PSP doador)         |
         |  [Concluir Reivindicação](#operation/completeClaim)  | adiciona (PSP reivindicador)|
 
+        Observação:
+        - A atualização de informações de eventos de CIDs para listagens é _assíncrona_ em relação às operações de inclusão e atualização de registros, sendo assim,
+        é possível haver um retardo de _5 segundos_ até que os dados incluídos ou alterados constem na consulta.
+
       operationId: listCidSetEvents
       tags:
         - Reconciliation
@@ -1495,11 +1578,22 @@ paths:
           name: Limit
           in: query
           required: false
+#        - description: Cursor de deslocamento em consultas. Permite o escape linear de registros.
+#          schema:
+#            type: integer
+#            default: 0
+#          name: Offset
+#          in: query
+#          required: false
       summary: Listar Relatos de Infração
       description: |- 
           Obtém lista de relatos de infração em que o participante é parte.
           
-          Lista de relatos é ordenada de forma crescente pelo campo `LastModified` .
+          Lista de relatos é ordenada de forma crescente pelo campo `LastModified`.
+
+          Observação:
+          - A atualização de informações de relatos de infração para listagens é _assíncrona_ em relação às operações de inclusão
+          e atualização de registros, sendo assim, é possível haver um retardo de _5 segundos_ até que os dados incluídos ou alterados constem na consulta.
       operationId: listInfractionReport
       tags:
         - InfractionReport
@@ -1660,6 +1754,8 @@ paths:
       description: |- 
         Fecha o relato de infração. Se o relato foi criado pelo participante debitado, o
         creditado deve realizar o fechamento e vice-versa.
+
+        Para fechamento, o status deve ser `ACKNOWLEDGED`.
 
           ### Idempotência
           A operação é idempotente. Caso o relato já tenha sido fechado com os mesmos parâmetros,

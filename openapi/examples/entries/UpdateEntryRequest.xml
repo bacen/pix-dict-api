@@ -9,5 +9,10 @@
         <AccountType>CACC</AccountType>
         <OpeningDate>2010-01-10T03:00:00Z</OpeningDate>
     </Account>
+    <Owner>
+        <Type>NATURAL_PERSON</Type>
+        <TaxIdNumber>11122233300</TaxIdNumber>
+        <Name>João Silva</Name>
+    </Owner>
     <Reason>USER_REQUESTED</Reason>
 </UpdateEntryRequest>

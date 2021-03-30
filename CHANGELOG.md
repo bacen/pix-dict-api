@@ -2,6 +2,11 @@
 
 Mudanças relevantes na API do DICT serão documentadas aqui.
 
+## [1.2.0] - 2021-04-01
+### Adicionado
+- Alteração de nome de cliente na Entry
+- Consulta de existência de chaves (CheckKeys)
+
 ## [1.1.0] - 2020-12-02
 ### Removido
 - Tipo de infração AML_CTF

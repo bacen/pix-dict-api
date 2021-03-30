@@ -52,6 +52,19 @@
       - EMAIL
       - EVP
     example: CPF
+  ExtendedKey:
+    allOf:
+      - $ref: '#/Key'
+      - type: string
+      - description: Chave de endereçamento.
+        xml:
+          name: Key
+        properties:
+          hasEntry:
+            type: boolean
+            description: Existe vínculo cadastrado para a chave de endereçamento.
+            xml:
+              attribute: true
   NaturalPerson:
     type: object
     properties:
@@ -522,6 +535,17 @@
           - CreditedParticipant
           - CreationTime
           - LastModified
+  Owner:
+    type: object
+    description: Dono da chave vinculada á uma conta transacional no Brasil.
+    oneOf:
+      - $ref: '#/NaturalPerson'
+      - $ref: '#/LegalPerson'
+    discriminator:
+        propertyName: Type
+        mapping:
+          NATURAL_PERSON: '#/NaturalPerson'
+          LEGAL_PERSON: '#/LegalPerson'
 
 #### SYNC REQ-RESP #####
 
@@ -963,6 +987,8 @@
         $ref: "#/Key"
       Account:
         $ref: '#/BrazilianAccount'
+      Owner:
+        $ref: '#/Owner'
       Reason:
         allOf:
           - $ref: '#/EntryOperationReason'
@@ -1072,6 +1098,39 @@
       - CorrelationId
       - Entry
       - Statistics
+
+##### KEY REQ-RESP #####
+
+  CheckKeysRequest:
+    type: object
+    properties:
+      Keys:
+        type: array
+        description: Chaves de endereçamento
+        items:
+          $ref: '#/Key'
+    required:
+      - Keys
+  CheckKeysResponse:
+    type: object
+    properties:
+      Signature:
+        type: object
+        xml:
+          prefix: ds
+          namespace: 'http://www.w3.org/2000/09/xmldsig#'
+      ResponseTime:
+        type: string
+        format: date-time
+      CorrelationId:
+        $ref: '#/CorrelationId'
+      Keys:
+        type: array
+        description: Chaves de endereçamento
+        items:
+          $ref: '#/ExtendedKey'
+    required:
+      - Keys
 
 ##### INFRACTION-REPORT REQ-RESP ####
 

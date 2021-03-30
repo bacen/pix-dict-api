@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CheckKeysRequest>
+    <Keys>
+        <Key>mail@mail.com</Key>
+        <Key>mail2@mail.com</Key>
+        <Key>+5561999999999</Key>
+        <Key>+5561888888888</Key>
+    </Keys>
+</CheckKeysRequest>
