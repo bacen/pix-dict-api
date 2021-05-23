@@ -24,7 +24,7 @@ info:
     O DICT utiliza autenticação mútua TLS.
 
     As definições de autenticação para essa API estão especificadas no
-    [manual de segurança do Pix](https://www.bcb.gov.br/content/estabilidadefinanceira/cedsfn/Manual%20de%20Seguranca%20do%20PIX%20v3.1.pdf).
+    [manual de segurança do Pix](https://www.bcb.gov.br/content/estabilidadefinanceira/cedsfn/Manual%20de%20Seguranca%20do%20PIX%20v3.2.pdf).
    
     ## Assinatura digital
     Requisições que incluam ou alterem informações no DICT devem ser assinadas com 
@@ -37,7 +37,7 @@ info:
     sendo assinado (assinatura é um elemento filho).
 
     Para mais detalhes sobre a forma de construir a assinatura, consulte o
-    [manual de segurança do Pix](https://www.bcb.gov.br/content/estabilidadefinanceira/cedsfn/Manual%20de%20Seguranca%20do%20PIX%20v3.1.pdf).
+    [manual de segurança do Pix](https://www.bcb.gov.br/content/estabilidadefinanceira/cedsfn/Manual%20de%20Seguranca%20do%20PIX%20v3.2.pdf).
 
     ## Limitação de requisições
     
