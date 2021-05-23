@@ -8,7 +8,7 @@ info:
   contact:
     name: Suporte TI BCB
     email: suporte.ti@bcb.gov.br
-    url: https://www.bcb.gov.br/estabilidadefinanceira/pagamentosinstantaneos
+    url: https://www.bcb.gov.br/estabilidadefinanceira/pix
   description: |- 
     O Diretório de Identificadores de Contas Transacionais - DICT - é o serviço do arranjo Pix que permite
     buscar detalhes de contas transacionais com chaves de endereçamento mais convenientes para quem faz
@@ -17,7 +17,7 @@ info:
     uma experiência mais fácil e segura. Permitem também ao PSP do pagador criar a mensagem de instrução de 
     pagamento a ser enviada para o sistema de liquidação com os detalhes de conta do recebedor.
 
-    Para informações adicionais, consulte a [página do Pix](https://www.bcb.gov.br/estabilidadefinanceira/pagamentosinstantaneos).
+    Para informações adicionais, consulte a [página do Pix](https://www.bcb.gov.br/estabilidadefinanceira/pix).
 
     # Segurança
     ## Autenticação 
