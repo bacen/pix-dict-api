@@ -1,7 +1,7 @@
 openapi: 3.0.0
 info:
   title: DICT API
-  version: '1.2.0'
+  version: '1.3.0'
   license:
     name: Apache 2.0
     url: http://www.apache.org/licenses/LICENSE-2.0
@@ -52,21 +52,21 @@ info:
 
     |  Política                          | Escopo   | Operações                                                                                            | Taxa de reposição | Tamanho do balde |
     |------------------------------------|----------|------------------------------------------------------------------------------------------------------|-------------------|------------------|
-    | ENTRIES_READ_USER_ANTISCAN         | USER     | getEntry                                                                                             | 1/3min            |  50              |
-    | ENTRIES_READ_PARTICIPANT_ANTISCAN  | PSP      | getEntry                                                                                             | 1000/min          |  5000            |
-    | ENTRIES_READ                       | PSP      | getEntry                                                                                             | 24000/min         |  120000          |
-    | ENTRIES_WRITE                      | PSP      | createEntry, updateEntry, deleteEntry                                                                | 3600/min          |  18000           |
-    | CLAIMS_READ                        | PSP      | getClaim                                                                                             | 1800/min          |  9000            |
-    | CLAIMS_WRITE                       | PSP      | createClaim, acknowledgeClaim, cancelClaim, confirmClaim, completeClaim                              | 3600/min          |  18000           |
-    | CLAIMS_LIST_WITH_ROLE              | PSP      | listClaims                                                                                           | 20/min            |  100             |
-    | CLAIMS_LIST_WITHOUT_ROLE           | PSP      | listClaims                                                                                           | 5/min             |  25              |
-    | SYNC_VERIFICATIONS_WRITE           | PSP      | createSyncVerification                                                                               | 5/min             |  25              |
-    | CIDS_FILES_WRITE                   | PSP      | createCidSetFile                                                                                     | 20/dia            |  100             |
-    | CIDS_FILES_READ                    | PSP      | getCidSetFile                                                                                        | 5/min             |  25              |
-    | CIDS_EVENTS_LIST                   | PSP      | listCidSetEvents                                                                                     | 20/min            |  100             |
-    | CIDS_ENTRIES_READ                  | PSP      | getEntryByCid                                                                                        | 3600/min          |  18000           |
-    | INFRACTION_REPORTS_READ            | PSP      | getInfractionReport                                                                                  | 1800/min          |  9000            |
-    | INFRACTION_REPORTS_WRITE           | PSP      | createInfractionReport, acknowledgeInfractionReport, cancelInfractionReport, closeInfractionReport   | 3600/min          |  18000           |
+    | ENTRIES_READ_USER_ANTISCAN         | USER     | getEntry                                                                                             | 2/min             |  1000            |
+    | ENTRIES_READ_PARTICIPANT_ANTISCAN  | PSP      | getEntry                                                                                             | 6000/min          |  20000           |
+    | ENTRIES_READ                       | PSP      | getEntry                                                                                             | 8000/min          |  240000          |
+    | ENTRIES_WRITE                      | PSP      | createEntry, updateEntry, deleteEntry                                                                | 1200/min          |  36000           |
+    | CLAIMS_READ                        | PSP      | getClaim                                                                                             | 600/min           |  18000           |
+    | CLAIMS_WRITE                       | PSP      | createClaim, acknowledgeClaim, cancelClaim, confirmClaim, completeClaim                              | 1200/min          |  36000           |
+    | CLAIMS_LIST_WITH_ROLE              | PSP      | listClaims                                                                                           | 40/min            |  200             |
+    | CLAIMS_LIST_WITHOUT_ROLE           | PSP      | listClaims                                                                                           | 10/min            |  50              |
+    | SYNC_VERIFICATIONS_WRITE           | PSP      | createSyncVerification                                                                               | 10/min            |  50              |
+    | CIDS_FILES_WRITE                   | PSP      | createCidSetFile                                                                                     | 40/dia            |  200             |
+    | CIDS_FILES_READ                    | PSP      | getCidSetFile                                                                                        | 10/min            |  50              |
+    | CIDS_EVENTS_LIST                   | PSP      | listCidSetEvents                                                                                     | 40/min            |  200             |
+    | CIDS_ENTRIES_READ                  | PSP      | getEntryByCid                                                                                        | 1200/min          |  36000           |
+    | INFRACTION_REPORTS_READ            | PSP      | getInfractionReport                                                                                  | 600/min           |  18000           |
+    | INFRACTION_REPORTS_WRITE           | PSP      | createInfractionReport, acknowledgeInfractionReport, cancelInfractionReport, closeInfractionReport   | 1200/min          |  36000           |
 
 
     ### Regras de contagem das políticas
@@ -92,21 +92,6 @@ info:
 
     - Demais políticas
       - status diferente de 500: subtrai 1
-    
-    ### Cabeçalhos
-
-    Nas respostas às operações sujeitas a políticas de limitação, são enviados cabeçalhos HTTP que 
-    informam detalhes sobre o estado dos baldes de fichas associados a cada escopo. 
-    Se para um escopo não existir política associada, os cabeçalhos desse escopo são omitidos.
-
-    | Cabeçalho                          | Descrição                                             |
-    |------------------------------------|-------------------------------------------------------|
-    | PI-RateLimit-ParticipantPolicy     | Nome da política aplicada no escopo do participante   |
-    | PI-RateLimit-ParticipantRemaining  | Quantidade de fichas sobrando                         |
-    | PI-RateLimit-ParticipantReset      | Tempo a esperar em segundos até próxima reposição     |
-    | PI-RateLimit-ClientPolicy          | Nome da política aplicada no escopo do usuário final  |
-    | PI-RateLimit-ClientRemaining       | Quantidade de fichas sobrando                         |
-    | PI-RateLimit-ClientReset           | Tempo a esperar em segundos até próxima reposição     |
 
     ### Violação de limites
 
@@ -287,6 +272,33 @@ info:
     - `InfractionReportPeriodExpired`
       - O prazo para o relato de infração sobre a transação expirou.
 
+    **Devoluções**
+
+    - `RefundOperationInvalid`
+      - Status atual da devolução não permite que operação seja feita.
+
+    - `RefundTransactionNotFound`
+      - A transação definida na requisição de devolução não foi encontrada.
+
+    - `RefundTransactionNotSettled`
+      - A transação definida na requisição de devolução não foi liquidada.
+
+    - `RefundAlreadyProcessedForTransaction`
+      - Já existe uma requisição de devolução processada para a transação informada.
+
+    - `RefundAlreadyBeingProcessedForTransaction`
+      - Já existe uma requisição de devolução em processamento para a transação informada.
+
+    - `RefundPeriodExpired`
+      - O prazo para requerer devolução para a transação expirou.
+
+    - `TransactionNotRefundable`
+      - A transação informada na requisição não permite devolução.
+
+    - `RefundInfractionReportNotFound`
+      - Um relato de infração correspondente à transação informada não foi encontrado.
+
+
 servers:
   - url: https://dict-h.pi.rsfn.net.br:16522/api/v1/
     description: Homologação
@@ -357,8 +369,7 @@ tags:
         ou cancelamento da reivindicação seguem normas específicas a depender do tipo (posse ou portabilidade).
         - `CONFIRMED` - O doador confirmou a reivindicação. Isso implica a remoção da chave do DICT e da base interna 
         do PSP doador. Está aguardando o reivindicador encerrar o processo.
-        - `CANCELLED` - O doador ou reivindicador cancelou a reivindicação, mantendo o vínculo inalterado (conforme estava antes da 
-        reivindicação) tanto no DICT quanto na base interna do PSP.
+        - `CANCELLED` - O doador ou reivindicador cancelou a reivindicação.
         - `COMPLETED` - Tanto o DICT quanto o reivindicador atualizaram suas bases com o novo vínculo.
 
       **Diagrama de estados**
@@ -368,15 +379,15 @@ tags:
                                 |                        /                            
                                 |                       /                             
                                 |                      /                              
-                                |                     /--Apenas para                  
-                                v                    /   reivindicação                
-                          ( CANCELLED )<------------v    de posse                      
+                                |                     /
+                                v                    /
+                          ( CANCELLED )<------------v
       ```
 
       **Importante!** 
       Os participantes deverão monitorar as reivindicações fazendo _polling_ períodico no _endpoint_
       de [listar reivindicações](#operation/listClaims). A periodicidade adequada dependerá 
-      das definições de nível de serviço. Consulte o [Manual de Tempos do Pix](https://www.bcb.gov.br/content/estabilidadefinanceira/pix/Regulamento_Pix/IX.ManualdeTemposdoPix-versao1.1.pdf).
+      das definições de nível de serviço. Consulte o **Manual de Tempos do Pix**.
  
 
   - name: Reconciliation
@@ -468,16 +479,29 @@ tags:
       O criador do relato pode cancelá-lo a qualquer momento, mesmo depois de fechado.
 
       Relatos de infração são criados a partir do identificador da transação realizada no SPI
-      (EndToEndId). O prazo máximo para relatar infração em uma transação está no regulamento do DICT.
+      (EndToEndId). O prazo máximo para relatar infração em uma transação está no Manual Operacional do DICT
 
       Cada participante deve realizar _polling_ periódico na lista de relatos para verificar se
       existem novos relatos em que é parte. O recebimento do relato não implica em concordância.
       Os níveis de serviço exigidos para as operações com relatos de infração estão definidos no
-      [Manual de Tempos do Pix](https://www.bcb.gov.br/content/estabilidadefinanceira/pix/Regulamento_Pix/IX.ManualdeTemposdoPix-versao1.1.pdf).
+      **Manual de Tempos do Pix**.
 
       Os relatos por motivo de fraude são contabilizados e retornados ao
       [consultar vínculo](#operation/getEntry). Se for cancelado, o relato deixa de ser contabilizado
       em REPORTED_FRAUDS durante a consulta de vínculos.
+
+  - name: Refund
+    x-displayName: Devolução
+    description: |-
+      A solicitação de devolução pode ser realizada pelo PSP do usuário pagador, por iniciativa própria ou a pedido do usuário,
+      nos casos em que exista fundada suspeita do uso do arranjo para a prática de fraude e naqueles em que se verifique falha
+      operacional no sistema de tecnologia da informação de qualquer dos participantes envolvidos na transação.
+      Uma solicitação de devolução pode ter os seguintes estados no DICT:
+      -	aberta: a devolução foi solicitada pelo PSP do usuário pagador;
+      -	analisada: a solicitação de devolução foi analisada pelo PSP do usuário recebedor e o resultado dessa análise está disponível; ou
+      -	cancelada: enquanto a solicitação não estiver no estado “analisada”, o PSP do pagador pode cancelar a solicitação.
+
+
 
 paths:
 ########################################################################################################################
@@ -652,9 +676,9 @@ paths:
       description: |-
         Atualiza um vínculo. 
         
-        A ser utilizado no cenário de atualização da informação da conta ou de nome de um cliente, permanecendo este no mesmo PSP.
-        Somente podem ser atualizadas as informações de conta do vínculo ou nome do cliente. Outras atualizações do vínculo devem
-        ser feitas por exclusão/inclusão do vínculo, portabilidade ou reivindicação de posse, a depender da situação.
+        A ser utilizado no cenário de atualização da informação da conta, nome e nome fantasia de um cliente, permanecendo este no mesmo PSP.
+        Somente podem ser atualizadas as informações de conta do vínculo, nome e nome fantasia do cliente. Outras atualizações do vínculo
+        devem ser feitas por exclusão/inclusão do vínculo, portabilidade ou reivindicação de posse, a depender da situação.
         
       operationId: updateEntry
       requestBody:
@@ -1125,7 +1149,7 @@ paths:
         de cancelamento for `DEFAULT_OPERATION`, prazo de validação de posse da chave do usuário
         reivindicador deve ter passado.
 
-        Para portabilidade, status deve ser `WAITING_RESOLUTION`. Se razão de cancelamento for 
+        Para portabilidade, status também deve ser `WAITING_RESOLUTION` ou `CONFIRMED`. Se razão de cancelamento for
         `DEFAULT_OPERATION`, prazo definido pelo campo `ResolutionPeriodEnd` deve ter passado.
 
         A tabela abaixo define, a depender da razão e do tipo, quem pode cancelar.
@@ -1173,6 +1197,13 @@ paths:
               <td>✓</td>
               <td>✓</td>
               <td></td>
+            </tr>
+            <tr>
+              <td>RECONCILIATION</td>
+              <td></td>
+              <td></td>
+              <td></td>
+              <td>✓</td>
             </tr>
           </tbody>
         </table>
@@ -1789,7 +1820,253 @@ paths:
           $ref: "#/components/responses/NotFound"
         '503':
           $ref: "#/components/responses/ServiceUnavailable"
- 
+
+  #######################################################################################################################
+  ## REFUND
+  #######################################################################################################################
+  '/refunds/':
+    post:
+      summary: Criar uma Solicitação de Devolução
+      description: |-
+        Cria uma Solicitação de devolução. Apenas o participante debitado pode criar uma Solicitação de devolução.
+      operationId: createRefund
+      tags:
+        - Refund
+      requestBody:
+        content:
+          application/xml:
+            schema:
+              $ref: '#/components/schemas/CreateRefundRequest'
+            examples:
+              example:
+                value:
+                  $ref: './examples/refunds/CreateRefundRequest.xml'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/CreateRefundResponse'
+              examples:
+                example:
+                  value:
+                    $ref: './examples/refunds/CreateRefundResponse.xml'
+        '400':
+          $ref: "#/components/responses/BadRequest"
+        '403':
+          $ref: "#/components/responses/Forbidden"
+        '503':
+          $ref: "#/components/responses/ServiceUnavailable"
+    get:
+      parameters:
+        - description: ISPB do partipante direto ou indireto responsável
+          schema:
+            type: string
+            pattern: '^[0-9]{8}$'
+          name: Participant
+          in: query
+          required: true
+        - description: Papel do participante na devolução
+          schema:
+            $ref: "#/components/schemas/RefundRequestRole"
+          name: ParticipantRole
+          in: query
+          required: true
+        - description: Lista de Status a serem pesquisados
+          schema:
+            type: array
+            items:
+              $ref: "#/components/schemas/RefundStatus"
+          name: Status
+          in: query
+          required: false
+        - description: Inclui os detalhes da devolução (campos Details)
+          schema:
+            type: boolean
+            default: false
+          name: IncludeDetails
+          in: query
+          required: false
+        - description: Filtra devoluções com data-hora de modificação maior ou igual a `modifiedAfter`
+          schema:
+            type: string
+            format: date-time
+          name: ModifiedAfter
+          in: query
+          required: false
+        - description: Filtra devoluções com data-hora de modificação menor ou igual a `modifiedBefore`
+          schema:
+            type: string
+            format: date-time
+          name: ModifiedBefore
+          in: query
+          required: false
+        - description: Número limite de devoluções a retornar
+          schema:
+            type: integer
+            default: 20
+            maximum: 200
+          name: Limit
+          in: query
+          required: false
+      summary: Listar Requisições de Devolução
+      description: |-
+        Obtém lista de requisições de devolução em que o participante é parte.
+
+        Lista de devoluções é ordenada de forma crescente pelo campo `LastModified`.
+
+        Observação:
+        - Assim como nas demais listagens, a atualização de informações de requisições de devolução para listagens é _assíncrona_ em relação às operações de inclusão
+        e atualização de registros, sendo assim, é possível haver um retardo de _5 segundos_ até que os dados incluídos ou alterados constem na consulta.
+      operationId: listRefund
+      tags:
+        - Refund
+      responses:
+        '200':
+          description: OK
+          content:
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/ListRefundsResponse'
+              examples:
+                example:
+                  value:
+                    $ref: './examples/refunds/ListRefundsResponse.xml'
+        '400':
+          $ref: "#/components/responses/BadRequest"
+        '403':
+          $ref: "#/components/responses/Forbidden"
+  '/refunds/{RefundId}':
+    parameters:
+      - schema:
+          type: string
+          format: uuid
+        name: RefundId
+        in: path
+        required: true
+    get:
+      summary: Consultar solicitação de devolução
+      operationId: getRefund
+      parameters:
+        - schema:
+            type: string
+            pattern: '^[0-9]{8}$'
+            example: '12345678'
+          in: header
+          name: PI-RequestingParticipant
+          description: 'Identificador SPB do participante (direto ou indireto) que faz a requisição.'
+          required: true
+      description: Obtém detalhes de uma solicitação de devolução.
+      tags:
+        - Refund
+      responses:
+        '200':
+          description: OK
+          content:
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/GetRefundResponse'
+              examples:
+                example:
+                  value:
+                    $ref: './examples/refunds/GetRefundResponse.xml'
+        '404':
+          $ref: "#/components/responses/NotFound"
+  '/refunds/{RefundId}/cancel':
+    parameters:
+      - schema:
+          type: string
+          format: uuid
+        name: RefundId
+        in: path
+        required: true
+    post:
+      summary: Cancelar solicitação de devolução
+      operationId: cancelRefund
+      description: |-
+        Cancela a Solicitação de devolução. Só pode ser realizada pelo participante que criou a solicitação.
+
+          ### Idempotência
+          A operação é idempotente. Caso a solicitação já tenha sido cancelada com os mesmos parâmetros,
+          será retornada resposta equivalente à primeira requisição.
+
+      tags:
+        - Refund
+      requestBody:
+        content:
+          application/xml:
+            schema:
+              $ref: '#/components/schemas/CancelRefundRequest'
+            examples:
+              example:
+                value:
+                  $ref: './examples/refunds/CancelRefundRequest.xml'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/CancelRefundResponse'
+              examples:
+                example:
+                  value:
+                    $ref: './examples/refunds/CancelRefundResponse.xml'
+        '403':
+          $ref: "#/components/responses/Forbidden"
+        '404':
+          $ref: "#/components/responses/NotFound"
+        '503':
+          $ref: "#/components/responses/ServiceUnavailable"
+  '/refunds/{RefundId}/close':
+    parameters:
+      - schema:
+          type: string
+          format: uuid
+        name: RefundId
+        in: path
+        required: true
+    post:
+      summary: Fechar solicitação de devolução
+      operationId: closeRefund
+      description: |-
+        Fecha a solicitação de devolução. A solicitação só pode ser fechada pelo participante contestado.
+
+        Para fechamento, o status deve ser `OPEN`.
+
+          ### Idempotência
+          A operação é idempotente. Caso a solicitação já tenha sido fechada com os mesmos parâmetros,
+          será retornada resposta equivalente à primeira requisição.
+      tags:
+        - Refund
+      requestBody:
+        content:
+          application/xml:
+            schema:
+              $ref: '#/components/schemas/CloseRefundRequest'
+            examples:
+              example:
+                value:
+                  $ref: './examples/refunds/CloseRefundRequest.xml'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/CloseRefundResponse'
+              examples:
+                example:
+                  value:
+                    $ref: './examples/refunds/CloseRefundResponse.xml'
+        '403':
+          $ref: "#/components/responses/Forbidden"
+        '404':
+          $ref: "#/components/responses/NotFound"
+        '503':
+          $ref: "#/components/responses/ServiceUnavailable"
+
 components:
   schemas:
     $ref: './schemas.yaml'

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CreateRefundRequest>
+    <Signature></Signature>
+    <Participant>99999010</Participant>
+    <Refund>
+        <TransactionId>E9999901012341234123412345678900</TransactionId>
+        <RefundReason>FRAUD</RefundReason>
+        <RefundAmount>100.00</RefundAmount>
+        <RefundDetails>Houve fraude confirmada na transação.</RefundDetails>
+    </Refund>
+</CreateRefundRequest>

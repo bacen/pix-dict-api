@@ -202,7 +202,14 @@
       - ACCOUNT_CLOSURE
       - FRAUD
       - DEFAULT_OPERATION
+      - RECONCILIATION
     description: Razão da operação
+  RefundRequestRole:
+    type: string
+    enum:
+      - REQUESTING
+      - CONTESTED
+    description: Papel do participante na operação de requisição de devolução
   Claim:
     type: object
     properties:
@@ -454,6 +461,8 @@
     description: Tipo da infração
     enum:
       - FRAUD
+      - REFUND_REQUEST
+      - REFUND_CANCELLED
   ReportedBy:
     type: string
     description: Participante que deu origem ao relato de infração
@@ -469,7 +478,7 @@
       - CANCELLED
   AnalysisResult:
     type: string
-    description: Resultado da análise da infração pelo recebedor.
+    description: Resultado da análise da infração.
     enum:
       - AGREED
       - DISAGREED
@@ -510,11 +519,11 @@
           DebitedParticipant:
             allOf:
               - $ref: '#/ISPB'
-              - description: Identificador SPB do participante do pagador da transação
+              - description: Identificador SPB do participante do pagador da transação.
           CreditedParticipant:
             allOf:
               - $ref: '#/ISPB'
-              - description: Identificador SPB do participante do recebedor da transação
+              - description: Identificador SPB do participante do recebedor da transação.
           CreationTime:
             type: string
             format: date-time
@@ -546,7 +555,97 @@
         mapping:
           NATURAL_PERSON: '#/NaturalPerson'
           LEGAL_PERSON: '#/LegalPerson'
-
+  Refund:
+    type: object
+    description: Solicitação de devolução de uma transação.
+    properties:
+      TransactionId:
+        type: string
+        description: Transação sendo contestada.
+        example: 'E9999901012341234123412345678900'
+        pattern: '\w{32}'
+      RefundReason:
+        $ref: '#/RefundReason'
+      RefundAmount:
+        type: number
+        format: currency
+        description: Valor solicitado para devolução.
+        example: '100.00'
+      RefundDetails:
+        description: Breve descrição do motivo da solicitação de devolução.
+        maxLength: 2000
+    required:
+      - TransactionId
+      - RefundReason
+  ExtendedRefund:
+    allOf:
+      - $ref: '#/Refund'
+      - type: object
+        xml:
+          name: Refund
+        properties:
+          Id:
+            type: string
+            format: uuid
+          Status:
+            $ref: '#/RefundStatus'
+          RequestingParticipant:
+            allOf:
+              - $ref: '#/ISPB'
+              - description: Identificador SPB do participante solicitante da devolução.
+          ContestedParticipant:
+            allOf:
+              - $ref: '#/ISPB'
+              - description: Identificador SPB do participante sendo contestado.
+          CreationTime:
+            type: string
+            format: date-time
+            description: Data-hora da criação da requisição de devolução.
+          LastModified:
+            type: string
+            format: date-time
+            description: Data-hora da última atualização de status.
+          AnalysisResult:
+            $ref: '#/RefundAnalysisResult'
+          AnalysisDetails:
+            $ref: '#/RefundAnalysisDetails'
+        required:
+          - Id
+          - Status
+          - RequestingParticipant
+          - ContestedParticipant
+          - CreationTime
+          - LastModified
+  RefundStatus:
+    type: string
+    enum:
+      - OPEN
+      - CLOSED
+      - CANCELLED
+  RefundAnalysisResult:
+    type: string
+    description: Resultado da análise da requisição de devolução pelo constestado.
+    enum:
+      - TOTALLY_ACCEPTED
+      - PARCIALlY_ACCEPTED
+      - REJECTED
+  RefundAnalysisDetails:
+    description: Detalhes da análise da requisição de devolução indicando a motivação do resultado.
+    maxLength: 2000
+  RefundReason:
+    type: string
+    enum:
+      - FRAUD
+      - OPERATIONAL_FLAW
+      - REFUND_CANCELLED
+    description: Razão da solicitação de devolução.
+  RefundRejectionReason:
+    type: string
+    enum:
+      - NO_BALANCE
+      - ACCOUNT_CLOSURE
+      - CANNOT_REFUND
+    description: Razão da rejeição da solicitação de devolução.
 #### SYNC REQ-RESP #####
 
   CreateCidSetFileRequest:
@@ -560,7 +659,7 @@
       Participant:
         allOf:
           - $ref: '#/ISPB'
-          - description: Identificador SPB do participante custodiante das chaves
+          - description: Identificador SPB do participante custodiante das chaves.
       KeyType:
         $ref: '#/KeyType'
     required:
@@ -995,7 +1094,6 @@
           - description: "Valores válidos: `USER_REQUESTED`, `BRANCH_TRANSFER` e `RECONCILIATION`"
     required:
       - Key
-      - Account
       - Reason
   UpdateEntryResponse:
     type: object
@@ -1304,7 +1402,7 @@
       Participant:
         allOf:
           - $ref: '#/ISPB'
-          - description: 'Identificador SPB do participante recebedor'
+          - description: 'Identificador SPB do participante.'
       AnalysisResult:
         $ref: '#/AnalysisResult'
       AnalysisDetails:
@@ -1332,6 +1430,176 @@
       - ResponseTime
       - CorrelationId
       - InfractionReport
+
+##### REFUND REQ-RESP ####
+
+  CreateRefundRequest:
+    type: object
+    properties:
+      Signature:
+        type: object
+        xml:
+          prefix: ds
+          namespace: 'http://www.w3.org/2000/09/xmldsig#'
+      Participant:
+        allOf:
+          - $ref: '#/ISPB'
+          - description: "Identificador SPB do participante que está solicitando a devolução."
+      Refund:
+        $ref: '#/Refund'
+    required:
+      - Participant
+      - Refund
+  CreateRefundResponse:
+    type: object
+    properties:
+      Signature:
+        type: object
+        xml:
+          prefix: ds
+          namespace: 'http://www.w3.org/2000/09/xmldsig#'
+      ResponseTime:
+        type: string
+        format: date-time
+      CorrelationId:
+        $ref: '#/CorrelationId'
+      Refund:
+        $ref: '#/ExtendedRefund'
+    required:
+      - ResponseTime
+      - CorrelationId
+      - Refund
+  ListRefundsResponse:
+    type: object
+    properties:
+      Signature:
+        type: object
+        xml:
+          prefix: ds
+          namespace: 'http://www.w3.org/2000/09/xmldsig#'
+      ResponseTime:
+        type: string
+        format: date-time
+      CorrelationId:
+        $ref: '#/CorrelationId'
+      HasMoreElements:
+        type: boolean
+        description: Existem mais elementos para iterar
+      Refunds:
+        type: array
+        items:
+          $ref: '#/ExtendedRefund'
+    required:
+      - ResponseTime
+      - CorrelationId
+      - HasMoreElements
+  GetRefundResponse:
+    type: object
+    properties:
+      Signature:
+        type: object
+        xml:
+          prefix: ds
+          namespace: 'http://www.w3.org/2000/09/xmldsig#'
+      ResponseTime:
+        type: string
+        format: date-time
+      CorrelationId:
+        $ref: '#/CorrelationId'
+      Refund:
+        $ref: '#/ExtendedRefund'
+    required:
+      - ResponseTime
+      - CorrelationId
+      - Refund
+  CancelRefundRequest:
+    type: object
+    properties:
+      Signature:
+        type: object
+        xml:
+          prefix: ds
+          namespace: 'http://www.w3.org/2000/09/xmldsig#'
+      RefundId:
+        type: string
+        format: uuid
+        description: ID da solicitação de devolução
+      Participant:
+        allOf:
+          - $ref: '#/ISPB'
+          - description: "Identificador SPB do participante que abriu a solicitação"
+    required:
+      - RefundId
+      - Participant
+  CancelRefundResponse:
+    type: object
+    properties:
+      Signature:
+        type: object
+        xml:
+          prefix: ds
+          namespace: 'http://www.w3.org/2000/09/xmldsig#'
+      ResponseTime:
+        type: string
+        format: date-time
+      CorrelationId:
+        $ref: '#/CorrelationId'
+      Refund:
+        $ref: '#/ExtendedRefund'
+    required:
+      - ResponseTime
+      - CorrelationId
+      - Refund
+  CloseRefundRequest:
+    type: object
+    properties:
+      Signature:
+        type: object
+        xml:
+          prefix: ds
+          namespace: 'http://www.w3.org/2000/09/xmldsig#'
+      RefundId:
+        type: string
+        format: uuid
+        description: ID da solicitação de devolução
+      Participant:
+        allOf:
+          - $ref: '#/ISPB'
+          - description: 'Identificador SPB do participante contestado'
+      RefundAnalysisResult:
+        $ref: '#/RefundAnalysisResult'
+      RefundAnalysisDetails:
+        $ref: '#/RefundAnalysisDetails'
+      RefundRejectionReason:
+        $ref: '#/RefundRejectionReason'
+      RefundTransactionId:
+        type: string
+        description: Transação de devolução (completa ou parcial)
+        example: 'D9999901012341234123412345678900'
+        pattern: '\w{32}'
+    required:
+      - RefundId
+      - Participant
+      - RefundAnalysisResult
+  CloseRefundResponse:
+    type: object
+    properties:
+      Signature:
+        type: object
+        xml:
+          prefix: ds
+          namespace: 'http://www.w3.org/2000/09/xmldsig#'
+      ResponseTime:
+        type: string
+        format: date-time
+      CorrelationId:
+        $ref: '#/CorrelationId'
+      Refund:
+        $ref: '#/ExtendedRefund'
+    required:
+      - ResponseTime
+      - CorrelationId
+      - Refund
 
 #################  
 

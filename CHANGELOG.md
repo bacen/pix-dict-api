@@ -2,6 +2,10 @@
 
 Mudanças relevantes na API do DICT serão documentadas aqui.
 
+## [1.3.0] - 2021-06-11
+### Adicionado
+- Fluxo de devolução
+
 ## [1.2.0] - 2021-04-01
 ### Adicionado
 - Alteração de nome de cliente na Entry

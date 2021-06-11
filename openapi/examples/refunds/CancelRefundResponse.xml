@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CancelRefundResponse>
+    <Signature></Signature>
+    <ResponseTime>2020-01-10T10:00:00Z</ResponseTime>
+    <CorrelationId>a9f13566e19f5ca51329479a5bae60c5</CorrelationId>
+    <Refund>
+        <TransactionId>E9999901012341234123412345678900</TransactionId>
+        <RefundReason>FRAUD</RefundReason>
+        <RefundAmount>200.00</RefundAmount>
+        <RefundDetails>Transação feita através de QR Code falso em boleto</RefundDetails>
+        <Id>91d65e98-97c0-4b0f-b577-73625da1f9fc</Id>
+        <Status>CANCELLED</Status>
+        <ContestedParticipant>99999010</ContestedParticipant>
+        <RequestingParticipant>99999011</RequestingParticipant>
+        <CreationTime>2020-01-17T10:00:00Z</CreationTime>
+        <LastModified>2020-01-17T10:00:00Z</LastModified>
+    </Refund>
+</CancelRefundResponse>

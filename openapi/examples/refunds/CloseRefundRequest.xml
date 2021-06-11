@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CloseRefundRequest>
+    <Signature></Signature>
+    <RefundId>91d65e98-97c0-4b0f-b577-73625da1f9fc</RefundId>
+    <Participant>12345678</Participant>
+    <RefundAnalysisResult>TOTALLY_ACCEPTED</RefundAnalysisResult>
+    <RefundAnalysisDetails>
+        Valor totalmente extornado ao demandante.
+    </RefundAnalysisDetails>
+    <RefundTransactionId>D9999901012341234123412345678900</RefundTransactionId>
+</CloseRefundRequest>
