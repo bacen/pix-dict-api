@@ -2,6 +2,11 @@
 
 Mudanças relevantes na API do DICT serão documentadas aqui.
 
+## [1.4.0] - 2021-06-26
+### Adicionado
+- Novo tipo de conta TRAN
+- Definição de políticas de limitação para Devolução, listagens de infração e checkKeys
+
 ## [1.3.0] - 2021-06-11
 ### Adicionado
 - Fluxo de devolução

@@ -3,6 +3,7 @@
   AccountType:
     enum:
     - CACC
+    - TRAN
     - SLRY
     - SVGS
     description: Tipo de conta, conforme dicionário de domínio para a mensagem pacs.008 do SPI.

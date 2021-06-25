@@ -1,7 +1,7 @@
 openapi: 3.0.0
 info:
   title: DICT API
-  version: '1.3.0'
+  version: '1.4.0'
   license:
     name: Apache 2.0
     url: http://www.apache.org/licenses/LICENSE-2.0
@@ -50,23 +50,28 @@ info:
     Cada política possui uma taxa de reposição de "fichas", um tamanho de "balde" e uma regra de contagem.
     A tabela abaixo define as políticas aplicáveis a cada operação da API.
 
-    |  Política                          | Escopo   | Operações                                                                                            | Taxa de reposição | Tamanho do balde |
-    |------------------------------------|----------|------------------------------------------------------------------------------------------------------|-------------------|------------------|
-    | ENTRIES_READ_USER_ANTISCAN         | USER     | getEntry                                                                                             | 2/min             |  1000            |
-    | ENTRIES_READ_PARTICIPANT_ANTISCAN  | PSP      | getEntry                                                                                             | 6000/min          |  20000           |
-    | ENTRIES_READ                       | PSP      | getEntry                                                                                             | 8000/min          |  240000          |
-    | ENTRIES_WRITE                      | PSP      | createEntry, updateEntry, deleteEntry                                                                | 1200/min          |  36000           |
-    | CLAIMS_READ                        | PSP      | getClaim                                                                                             | 600/min           |  18000           |
-    | CLAIMS_WRITE                       | PSP      | createClaim, acknowledgeClaim, cancelClaim, confirmClaim, completeClaim                              | 1200/min          |  36000           |
-    | CLAIMS_LIST_WITH_ROLE              | PSP      | listClaims                                                                                           | 40/min            |  200             |
-    | CLAIMS_LIST_WITHOUT_ROLE           | PSP      | listClaims                                                                                           | 10/min            |  50              |
-    | SYNC_VERIFICATIONS_WRITE           | PSP      | createSyncVerification                                                                               | 10/min            |  50              |
-    | CIDS_FILES_WRITE                   | PSP      | createCidSetFile                                                                                     | 40/dia            |  200             |
-    | CIDS_FILES_READ                    | PSP      | getCidSetFile                                                                                        | 10/min            |  50              |
-    | CIDS_EVENTS_LIST                   | PSP      | listCidSetEvents                                                                                     | 40/min            |  200             |
-    | CIDS_ENTRIES_READ                  | PSP      | getEntryByCid                                                                                        | 1200/min          |  36000           |
-    | INFRACTION_REPORTS_READ            | PSP      | getInfractionReport                                                                                  | 600/min           |  18000           |
-    | INFRACTION_REPORTS_WRITE           | PSP      | createInfractionReport, acknowledgeInfractionReport, cancelInfractionReport, closeInfractionReport   | 1200/min          |  36000           |
+    |  Política                            | Escopo   | Operações                                                                                            | Taxa de reposição | Tamanho do balde |
+    |--------------------------------------|----------|------------------------------------------------------------------------------------------------------|-------------------|------------------|
+    | ENTRIES_READ_USER_ANTISCAN           | USER     | getEntry                                                                                             | 2/min             |  1000            |
+    | ENTRIES_READ_PARTICIPANT_ANTISCAN    | PSP      | getEntry                                                                                             | 6000/min          |  20000           |
+    | ENTRIES_READ                         | PSP      | getEntry                                                                                             | 8000/min          |  240000          |
+    | ENTRIES_WRITE                        | PSP      | createEntry, updateEntry, deleteEntry                                                                | 1200/min          |  36000           |
+    | CLAIMS_READ                          | PSP      | getClaim                                                                                             | 600/min           |  18000           |
+    | CLAIMS_WRITE                         | PSP      | createClaim, acknowledgeClaim, cancelClaim, confirmClaim, completeClaim                              | 1200/min          |  36000           |
+    | CLAIMS_LIST_WITH_ROLE                | PSP      | listClaims                                                                                           | 40/min            |  200             |
+    | CLAIMS_LIST_WITHOUT_ROLE             | PSP      | listClaims                                                                                           | 10/min            |  50              |
+    | SYNC_VERIFICATIONS_WRITE             | PSP      | createSyncVerification                                                                               | 10/min            |  50              |
+    | CIDS_FILES_WRITE                     | PSP      | createCidSetFile                                                                                     | 40/dia            |  200             |
+    | CIDS_FILES_READ                      | PSP      | getCidSetFile                                                                                        | 10/min            |  50              |
+    | CIDS_EVENTS_LIST                     | PSP      | listCidSetEvents                                                                                     | 40/min            |  200             |
+    | CIDS_ENTRIES_READ                    | PSP      | getEntryByCid                                                                                        | 1200/min          |  36000           |
+    | INFRACTION_REPORTS_READ              | PSP      | getInfractionReport                                                                                  | 600/min           |  18000           |
+    | INFRACTION_REPORTS_WRITE             | PSP      | createInfractionReport, acknowledgeInfractionReport, cancelInfractionReport, closeInfractionReport   | 1200/min          |  36000           |
+    | INFRACTION_REPORTS_LIST_WITH_ROLE    | PSP      | listInfractionReports                                                                                | 40/min            |  200             |
+    | INFRACTION_REPORTS_LIST_WITHOUT_ROLE | PSP      | listInfractionReports                                                                                | 10/min            |  50              |
+    | KEYS_READ                            | PSP      | checkKeys                                                                                            | 70/min            |  70              |
+    | REFUNDS_READ                         | PSP      | getRefund                                                                                            | 1200/min          |  36000           |
+    | REFUNDS_WRITE                        | PSP      | createRefund, cancelRefund, closeRefund                                                              | 2400/min          |  72000           |
 
 
     ### Regras de contagem das políticas
