@@ -1,1653 +1,1598 @@
 #### MODEL ####
 
-  AccountType:
-    enum:
-    - CACC
-    - TRAN
-    - SLRY
-    - SVGS
-    description: Tipo de conta, conforme dicionário de domínio para a mensagem pacs.008 do SPI.
-    example: CACC
-    pattern: '^[A-Z]{4}$'
-  BrazilianAccount:
-    type: object
-    description: Dados de conta transacional no Brasil.
-    properties:
-      Participant:
-        allOf:
-          - $ref: '#/ISPB'
-          - description: "Identificador SPB do provedor da conta"
-      Branch:
-        type: string
-        description: Agência, sem dígito verificador.
-        pattern: '^[0-9]{1,4}$'
-        example: '0001'
-      AccountNumber:
-        type: string
-        description: 'Número de conta, incluindo verificador. Se verificador for letra, substituir por 0.'
-        pattern: '^[0-9]{1,20}$'
-        example: '0007654321'
-      AccountType:
-        $ref: '#/AccountType'
-      OpeningDate:
-        type: string
-        description: 'Data de abertura da conta. Para o horário, caso não seja conhecido, convenciona-se o início do dia em BRT'
-        format: date-time
-    required:
-      - Participant
-      - AccountNumber
-      - AccountType
-      - OpeningDate
-  Key:
-    type: string
-    description: Chave de endereçamento
-    maxLength: 77
-    example: '12345678901'
-  KeyType:
-    type: string
-    description: Tipo de chave. _Novos tipos podem surgir_.
-    enum:
-      - CPF
-      - CNPJ
-      - PHONE
-      - EMAIL
-      - EVP
-    example: CPF
-  ExtendedKey:
-    allOf:
-      - $ref: '#/Key'
-      - type: string
-      - description: Chave de endereçamento.
-        xml:
-          name: Key
-        properties:
-          hasEntry:
-            type: boolean
-            description: Existe vínculo cadastrado para a chave de endereçamento.
-            xml:
-              attribute: true
-  NaturalPerson:
-    type: object
-    properties:
-      Type:
-        type: string
-        default: NATURAL_PERSON
-      TaxIdNumber:
-        type: string
-        description: CPF - Cadastro de Pessoa Física
-        pattern: '^[0-9]{11}$'
-        example: '11122233300'
-      Name:
-        type: string
-        description: Nome completo
-        example: João Silva
-        maxLength: 100
-        pattern: ^([A-Za-zÀ-ÖØ-öø-ÿ' -]+)$
-    required:
-      - Type
-      - TaxIdNumber
-      - Name
-  LegalPerson:
-    type: object
-    properties:
-      Type:
-        type: string
-        default: LEGAL_PERSON
-      TaxIdNumber:
-        type: string
-        description: CNPJ - Cadastro Nacional de Pessoa Jurídica
-        example: '11222333000150'
-        pattern: '[0-9]{14}'
-      Name:
-        type: string
-        description: Razão social.
-        maxLength: 100
-        example: Padaria Tres Irmãos Ltda
-        pattern: ^([A-Za-zÀ-ÖØ-öø-ÿ,.@:&*+_<>()!?/\\$%\d' -]+)$
-      TradeName:
-        type: string
-        description: Nome fantasia.
-        maxLength: 100
-        example: Padaria 3 Irmãos
-        pattern: ^([A-Za-zÀ-ÖØ-öø-ÿ,.@:&*+_<>()!?/\\$%\d' -]+)$
-    required:
-      - Type
-      - TaxIdNumber
-      - Name
-  ISPB:
-    type: string
-    pattern: '^[0-9]{8}$'
-    example: '12345678'
-  KeyOwnershipDate:
-    type: string
-    format: date-time
-    description: |-
-      Data a partir da qual o dono tem posse ininterrupta da chave de endereçamento.
-      Posse da chave aqui é definida pela existência de um vínculo associando a chave ao dono,
-      possivelmente com contas distintas.
-  EntryCreationDate:
-    type: string
-    format: date-time
-    description: Data de criação do vínculo.
-  Entry:
-    type: object
-    description: Vínculo entre uma chave de endereçamento, conta transacional e seu dono.
-    properties:
-      Key:
-        $ref: '#/Key'
-      KeyType:
-        $ref: '#/KeyType'
-      Account:
-        $ref: '#/BrazilianAccount'
-      Owner:
-        oneOf:
-          - $ref: '#/NaturalPerson'
-          - $ref: '#/LegalPerson'
-        discriminator:
-            propertyName: Type
-            mapping:
-              NATURAL_PERSON: '#/NaturalPerson'
-              LEGAL_PERSON: '#/LegalPerson'
-    required:
-      - KeyType
-      - Account
-      - Owner
-  ExtendedEntry:
-    allOf:
-      - $ref: '#/Entry'
-      - type: object
-        xml:
-          name: Entry
-        properties:
-          CreationDate:
-            $ref: '#/EntryCreationDate'
-          KeyOwnershipDate:
-            $ref: '#/KeyOwnershipDate'
-          OpenClaimCreationDate:
-            type: string
-            format: date-time
-            description: |- 
-              Caso a chave esteja, no momento, em processo de reivindicação de posse ou portabilidade,
-              este campo informa quando o processo começou.
-        required:
-          - Key
-          - CreationDate
-          - KeyOwnershipDate
-  EntryOperationReason:
-    type: string
-    enum:
-      - USER_REQUESTED
-      - ACCOUNT_CLOSURE
-      - BRANCH_TRANSFER
-      - ENTRY_INACTIVITY
-      - RECONCILIATION
-      - FRAUD
-  ClaimStatus:
-    type: string
-    enum:
-      - OPEN
-      - WAITING_RESOLUTION
-      - CONFIRMED
-      - CANCELLED
-      - COMPLETED
-  ClaimType:
-    type: string
-    enum:
-      - OWNERSHIP
-      - PORTABILITY
-    description: Tipo de reivindicação
-  ClaimOperationReason:
-    type: string
-    enum:
-      - USER_REQUESTED
-      - ACCOUNT_CLOSURE
-      - FRAUD
-      - DEFAULT_OPERATION
-      - RECONCILIATION
-    description: Razão da operação
-  RefundRequestRole:
-    type: string
-    enum:
-      - REQUESTING
-      - CONTESTED
-    description: Papel do participante na operação de requisição de devolução
-  Claim:
-    type: object
-    properties:
-      Type:
-        $ref: '#/ClaimType'
-      Key:
-        $ref: '#/Key'
-      KeyType:
-        allOf:
-          - $ref: '#/KeyType'
-          - description: Tipo de chave. CPF e CNPJ são inválidos, não podem ter posse reivindicada.
-      ClaimerAccount:
-        $ref: '#/BrazilianAccount'
-      Claimer:
-        oneOf:
-          - $ref: '#/NaturalPerson'
-          - $ref: '#/LegalPerson'
-        discriminator:
-            propertyName: Type
-            mapping:
-              NATURAL_PERSON: '#/NaturalPerson'
-              LEGAL_PERSON: '#/LegalPerson'
-    required:
-      - Key
-      - KeyType
-      - ClaimerAccount
-      - Claimer
-      - Type
-  ExtendedClaim:
-    allOf:
-      - $ref: '#/Claim'
-      - type: object
-        xml:
-          name: Claim
-        properties:
-          DonorParticipant:
-            allOf:
-              - $ref: '#/ISPB'
-              - description: Identificador SPB do participante que doa a chave reinvidicada
-          Id:
-            type: string
-            format: uuid
-          Status:
-            $ref: '#/ClaimStatus'
-          ResolutionPeriodEnd:
-            type: string
-            format: date-time
-            description: Data-hora quando termina o período de resolução.
-          CompletionPeriodEnd:
-            type: string
-            format: date-time
-            description: Data-hora quando termina o período de encerramento. Apenas para reivindicação de posse.
-          LastModified:
-            type: string
-            format: date-time
-            description: Data-hora da última modificação do status da reivindicação
-          ConfirmReason:
-            allOf:
-              - $ref: '#/ClaimOperationReason'
-              - description: Razão utilizada pelo doador para confirmar a operação (caso já tenha sido confirmada)
-          CancelReason:
-            allOf:
-              - $ref: '#/ClaimOperationReason'
-              - description: Razão utilizada pelo participante que cancelou a operação (caso já tenha sido cancelada)
-          CancelledBy:
-            type: string
-            description: Participante que realizou o cancelamento (caso tenha sido cancelada)
-            enum:
-              - DONOR
-              - CLAIMER
-        required:
-          - DonorParticipant
-          - Id
-          - Status
-          - ResolutionPeriodEnd
-          - LastModified
-  Cid:
-    type: string
-    pattern: '^[0-9a-fA-F]{64}$'
-    description: Identificador de conteúdo
-  CidSetEventType:
-    type: string
-    enum:
-      - ADDED
-      - REMOVED
-  CidSetEvent:
-    type: object
-    properties:
-      Type:
-        $ref: '#/CidSetEventType'
-      Cid:
-        $ref: '#/Cid'
-      Timestamp:
-        type: string
-        format: date-time
-        description: Data-hora do evento
-  CorrelationId:
-    type: string
-    pattern: '^[0-9a-fA-F]{32}$'
-    description: Identificador de correlação para suporte operacional
-  RequestId:
-    type: string
-    format: uuid
-    description: Chave de idempotência da requisição. UUID versão 4.
-  SyncVerificationResult:
-    type: string
-    enum:
-      - OK
-      - NOK
-  SyncVerifier:
-    type: string
-    pattern: '^[0-9a-fA-F]{64}$'
-    example: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'
-  SyncVerification:
-    type: object
-    properties:
-      Participant:
-        allOf:
-          - $ref: '#/ISPB'
-          - description: Identificador SPB do participante custodiante das chaves
-      KeyType:
-        $ref: '#/KeyType'
-      ParticipantSyncVerifier:
-        allOf:
-          - $ref: '#/SyncVerifier'
-          - description: Verificador de sincronismo calculado pelo participante
-    required:
-      - Participant
-      - KeyType
-      - ParticipantSyncVerifier
-  ExtendedSyncVerification:
-    allOf:
-      - $ref: '#/SyncVerification'
-      - type: object
-        xml:
-          name: SyncVerification
-        properties:
-          Id:
-            type: integer
-          Result:
-            $ref: '#/SyncVerificationResult'
-        required:
-          - Id
-          - Result
-  FileStatus:
-    type: string
-    description: Status de geração do arquivo.
-    enum:
-      - REQUESTED
-      - PROCESSING
-      - AVAILABLE
-      - UNAVAILABLE
-      - ERROR
-    example: AVAILABLE
-  CidSetFile:
-    type: object
-    properties:
-      Id:
-        type: integer
-      Status:
-        allOf:
-          - $ref: '#/FileStatus'
-          - description: Status de geração do arquivo de CIDs
-      Participant:
-        allOf:
-          - $ref: '#/ISPB'
-          - description: Identificador SPB do participante custodiante das chaves
-      KeyType:
-        $ref: '#/KeyType'
-      RequestTime:
-        type: string
-        format: date-time
-        description: Data-hora de solicitação da geração do arquivo.
-      CreationTime:
-        type: string
-        format: date-time
-        description: Data-hora em que o arquivo foi gerado. Presente quando status for `AVAILABLE`.
-      Url:
-        type: string
-        description: URL para download do arquivo. Presente quando status for `AVAILABLE`.
-        maxLength: 500
-        example: https://alguma_url.algum_dominio/algum_path/nome_do_arquivo_gerado_pelo_dict.tipo
-      Bytes:
-        type: integer
-        description: Tamanho do arquivo. Presente quando status for `AVAILABLE`.
-      Sha256:
-        type: string
-        description: SHA256 do conteúdo do arquivo. Presente quando status for `AVAILABLE`.
-        pattern: '^[0-9a-fA-F]{64}$'
-        example: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'
-    required:
-      - Id
-      - Status
-      - Participant
-      - KeyType
-      - RequestTime
-  Counter:
-    type: object
-    description: Contador de eventos agregados por tipo em diversas janelas temporais.
-    properties:
-      type:
-        type: string
-        description: Tipo do contador.
-        xml:
-          attribute: true
-        enum:
-          - SETTLEMENTS
-          - REPORTED_FRAUDS
-          - CONFIRMED_FRAUDS
-      by:
-        type: string
-        description: Agregador (chave, dono ou conta).
-        xml:
-          attribute: true
-        enum:
-          - KEY
-          - OWNER
-          - ACCOUNT
-      d3:
-        description: Valor para os últimos 3 dias
-        type: integer
-        xml:
-          attribute: true
-      d30:
-        description: Valor para os últimos 30 dias
-        type: integer
-        xml:
-          attribute: true
-      m6:
-        description: Valor para os últimos 6 meses (sem contar o mês corrente)
-        type: integer
-        xml:
-          attribute: true
-  Statistics:
-    type: object
-    description: Dados de estatísticos relacionados à chave, ao dono ou à conta
-    properties:
-      LastUpdated:
-        type: string
-        format: date-time
-        description: data-hora da última atualização dos dados antifraude
-      Counters:
-        type: array
-        description: Contadores de eventos de algum tipo
-        items:
-          $ref: '#/Counter'
-  InfractionType:
-    type: string
-    description: Tipo da infração
-    enum:
-      - FRAUD
-      - REFUND_REQUEST
-      - REFUND_CANCELLED
-  ReportedBy:
-    type: string
-    description: Participante que deu origem ao relato de infração
-    enum:
-      - DEBITED_PARTICIPANT
-      - CREDITED_PARTICIPANT
-  InfractionReportStatus:
-    type: string
-    enum:
-      - OPEN
-      - ACKNOWLEDGED
-      - CLOSED
-      - CANCELLED
-  AnalysisResult:
-    type: string
-    description: Resultado da análise da infração.
-    enum:
-      - AGREED
-      - DISAGREED
-  AnalysisDetails:
-            description: Detalhes da análise da infração, que possam orientar o pagador dos próximos passos.
-            maxLength: 2000
-  InfractionReport:
-    type: object
-    description: Relato de infração sobre uma transação
-    properties:
-      TransactionId:
-        type: string
-        description: Transação com suspeita de infração
-        example: 'E9999901012341234123412345678900'
-        pattern: '\w{32}'
-      InfractionType:
-        $ref: '#/InfractionType'
-      ReportDetails:
-        description: Detalhes que possam ajudar o participante recebedor a analisar a suspeita de infração
-        maxLength: 2000
-    required:
-      - TransactionId
-      - InfractionType
-  ExtendedInfractionReport:
-    allOf:
-      - $ref: '#/InfractionReport'
-      - type: object
-        xml:
-          name: InfractionReport
-        properties:
-          Id:
-            type: string
-            format: uuid
-          ReportedBy:
-            $ref: '#/ReportedBy'
-          Status:
-            $ref: '#/InfractionReportStatus'
-          DebitedParticipant:
-            allOf:
-              - $ref: '#/ISPB'
-              - description: Identificador SPB do participante do pagador da transação.
-          CreditedParticipant:
-            allOf:
-              - $ref: '#/ISPB'
-              - description: Identificador SPB do participante do recebedor da transação.
-          CreationTime:
-            type: string
-            format: date-time
-            description: Data-hora da criação do relato de infração
-          LastModified:
-            type: string
-            format: date-time
-            description: Data-hora da última atualização de status
-          AnalysisResult:
-            $ref: '#/AnalysisResult'
-          AnalysisDetails:
-            $ref: '#/AnalysisDetails'
-        required:
-          - Id
-          - ReportedBy
-          - Status
-          - DebitedParticipant
-          - CreditedParticipant
-          - CreationTime
-          - LastModified
-  Owner:
-    type: object
-    description: Dono da chave vinculada á uma conta transacional no Brasil.
-    oneOf:
-      - $ref: '#/NaturalPerson'
-      - $ref: '#/LegalPerson'
-    discriminator:
-        propertyName: Type
-        mapping:
-          NATURAL_PERSON: '#/NaturalPerson'
-          LEGAL_PERSON: '#/LegalPerson'
-  Refund:
-    type: object
-    description: Solicitação de devolução de uma transação.
-    properties:
-      TransactionId:
-        type: string
-        description: Transação sendo contestada.
-        example: 'E9999901012341234123412345678900'
-        pattern: '\w{32}'
-      RefundReason:
-        $ref: '#/RefundReason'
-      RefundAmount:
-        type: number
-        format: currency
-        description: Valor solicitado para devolução.
-        example: '100.00'
-      RefundDetails:
-        description: Breve descrição do motivo da solicitação de devolução.
-        maxLength: 2000
-    required:
-      - TransactionId
-      - RefundReason
-  ExtendedRefund:
-    allOf:
-      - $ref: '#/Refund'
-      - type: object
-        xml:
-          name: Refund
-        properties:
-          Id:
-            type: string
-            format: uuid
-          Status:
-            $ref: '#/RefundStatus'
-          RequestingParticipant:
-            allOf:
-              - $ref: '#/ISPB'
-              - description: Identificador SPB do participante solicitante da devolução.
-          ContestedParticipant:
-            allOf:
-              - $ref: '#/ISPB'
-              - description: Identificador SPB do participante sendo contestado.
-          CreationTime:
-            type: string
-            format: date-time
-            description: Data-hora da criação da requisição de devolução.
-          LastModified:
-            type: string
-            format: date-time
-            description: Data-hora da última atualização de status.
-          AnalysisResult:
-            $ref: '#/RefundAnalysisResult'
-          AnalysisDetails:
-            $ref: '#/RefundAnalysisDetails'
-        required:
-          - Id
-          - Status
-          - RequestingParticipant
-          - ContestedParticipant
-          - CreationTime
-          - LastModified
-  RefundStatus:
-    type: string
-    enum:
-      - OPEN
-      - CLOSED
-      - CANCELLED
-  RefundAnalysisResult:
-    type: string
-    description: Resultado da análise da requisição de devolução pelo constestado.
-    enum:
-      - TOTALLY_ACCEPTED
-      - PARCIALlY_ACCEPTED
-      - REJECTED
-  RefundAnalysisDetails:
-    description: Detalhes da análise da requisição de devolução indicando a motivação do resultado.
-    maxLength: 2000
-  RefundReason:
-    type: string
-    enum:
-      - FRAUD
-      - OPERATIONAL_FLAW
-      - REFUND_CANCELLED
-    description: Razão da solicitação de devolução.
-  RefundRejectionReason:
-    type: string
-    enum:
-      - NO_BALANCE
-      - ACCOUNT_CLOSURE
-      - CANNOT_REFUND
-    description: Razão da rejeição da solicitação de devolução.
+AccountType:
+  enum:
+  - CACC
+  - TRAN
+  - SLRY
+  - SVGS
+  description: Tipo de conta, conforme dicionário de domínio para a mensagem pacs.008 do SPI.
+  example: CACC
+  pattern: '^[A-Z]{4}$'
+BrazilianAccount:
+  type: object
+  description: Dados de conta transacional no Brasil.
+  properties:
+    Participant:
+      allOf:
+        - $ref: '#/ISPB'
+        - description: "Identificador SPB do provedor da conta"
+    Branch:
+      type: string
+      description: Agência, sem dígito verificador.
+      pattern: '^[0-9]{1,4}$'
+      example: '0001'
+    AccountNumber:
+      type: string
+      description: 'Número de conta, incluindo verificador. Se verificador for letra, substituir por 0.'
+      pattern: '^[0-9]{1,20}$'
+      example: '0007654321'
+    AccountType:
+      $ref: '#/AccountType'
+    OpeningDate:
+      type: string
+      description: 'Data de abertura da conta. Para o horário, caso não seja conhecido, convenciona-se o início do dia em BRT'
+      format: date-time
+  required:
+    - Participant
+    - AccountNumber
+    - AccountType
+    - OpeningDate
+Key:
+  type: string
+  description: Chave de endereçamento
+  maxLength: 77
+  example: '12345678901'
+KeyType:
+  type: string
+  description: Tipo de chave. _Novos tipos podem surgir_.
+  enum:
+    - CPF
+    - CNPJ
+    - PHONE
+    - EMAIL
+    - EVP
+  example: CPF
+ExtendedKey:
+  allOf:
+    - $ref: '#/Key'
+    - type: string
+    - description: Chave de endereçamento.
+      xml:
+        name: Key
+      properties:
+        hasEntry:
+          type: boolean
+          description: Existe vínculo cadastrado para a chave de endereçamento.
+          xml:
+            attribute: true
+ISPB:
+  type: string
+  pattern: '^[0-9]{8}$'
+  example: '12345678'
+KeyOwnershipDate:
+  type: string
+  format: date-time
+  description: |-
+    Data a partir da qual o dono tem posse ininterrupta da chave de endereçamento.
+    Posse da chave aqui é definida pela existência de um vínculo associando a chave ao dono,
+    possivelmente com contas distintas.
+EntryCreationDate:
+  type: string
+  format: date-time
+  description: Data de criação do vínculo.
+Entry:
+  type: object
+  description: Vínculo entre uma chave de endereçamento, conta transacional e seu dono.
+  properties:
+    Key:
+      $ref: '#/Key'
+    KeyType:
+      $ref: '#/KeyType'
+    Account:
+      $ref: '#/BrazilianAccount'
+    Owner:
+      $ref: '#/Person'
+  required:
+    - KeyType
+    - Account
+    - Owner
+ExtendedEntry:
+  allOf:
+    - $ref: '#/Entry'
+    - type: object
+      xml:
+        name: Entry
+      properties:
+        CreationDate:
+          $ref: '#/EntryCreationDate'
+        KeyOwnershipDate:
+          $ref: '#/KeyOwnershipDate'
+        OpenClaimCreationDate:
+          type: string
+          format: date-time
+          description: |-
+            Caso a chave esteja, no momento, em processo de reivindicação de posse ou portabilidade,
+            este campo informa quando o processo começou.
+      required:
+        - Key
+        - CreationDate
+        - KeyOwnershipDate
+EntryOperationReason:
+  type: string
+  enum:
+    - USER_REQUESTED
+    - ACCOUNT_CLOSURE
+    - BRANCH_TRANSFER
+    - ENTRY_INACTIVITY
+    - RECONCILIATION
+    - FRAUD
+ClaimStatus:
+  type: string
+  enum:
+    - OPEN
+    - WAITING_RESOLUTION
+    - CONFIRMED
+    - CANCELLED
+    - COMPLETED
+ClaimType:
+  type: string
+  enum:
+    - OWNERSHIP
+    - PORTABILITY
+  description: Tipo de reivindicação
+ClaimOperationReason:
+  type: string
+  enum:
+    - USER_REQUESTED
+    - ACCOUNT_CLOSURE
+    - FRAUD
+    - DEFAULT_OPERATION
+    - RECONCILIATION
+  description: Razão da operação
+RefundRequestRole:
+  type: string
+  enum:
+    - REQUESTING
+    - CONTESTED
+  description: Papel do participante na operação de requisição de devolução
+Claim:
+  type: object
+  properties:
+    Type:
+      $ref: '#/ClaimType'
+    Key:
+      $ref: '#/Key'
+    KeyType:
+      allOf:
+        - $ref: '#/KeyType'
+        - description: Tipo de chave. CPF e CNPJ são inválidos, não podem ter posse reivindicada.
+    ClaimerAccount:
+      $ref: '#/BrazilianAccount'
+    Claimer:
+      $ref: '#/Person'
+  required:
+    - Key
+    - KeyType
+    - ClaimerAccount
+    - Claimer
+    - Type
+ExtendedClaim:
+  allOf:
+    - $ref: '#/Claim'
+    - type: object
+      xml:
+        name: Claim
+      properties:
+        DonorParticipant:
+          allOf:
+            - $ref: '#/ISPB'
+            - description: Identificador SPB do participante que doa a chave reinvidicada
+        Id:
+          type: string
+          format: uuid
+        Status:
+          $ref: '#/ClaimStatus'
+        ResolutionPeriodEnd:
+          type: string
+          format: date-time
+          description: Data-hora quando termina o período de resolução.
+        CompletionPeriodEnd:
+          type: string
+          format: date-time
+          description: Data-hora quando termina o período de encerramento. Apenas para reivindicação de posse.
+        LastModified:
+          type: string
+          format: date-time
+          description: Data-hora da última modificação do status da reivindicação
+        ConfirmReason:
+          allOf:
+            - $ref: '#/ClaimOperationReason'
+            - description: Razão utilizada pelo doador para confirmar a operação (caso já tenha sido confirmada)
+        CancelReason:
+          allOf:
+            - $ref: '#/ClaimOperationReason'
+            - description: Razão utilizada pelo participante que cancelou a operação (caso já tenha sido cancelada)
+        CancelledBy:
+          type: string
+          description: Participante que realizou o cancelamento (caso tenha sido cancelada)
+          enum:
+            - DONOR
+            - CLAIMER
+      required:
+        - DonorParticipant
+        - Id
+        - Status
+        - ResolutionPeriodEnd
+        - LastModified
+Cid:
+  type: string
+  pattern: '^[0-9a-fA-F]{64}$'
+  description: Identificador de conteúdo
+CidSetEventType:
+  type: string
+  enum:
+    - ADDED
+    - REMOVED
+CidSetEvent:
+  type: object
+  properties:
+    Type:
+      $ref: '#/CidSetEventType'
+    Cid:
+      $ref: '#/Cid'
+    Timestamp:
+      type: string
+      format: date-time
+      description: Data-hora do evento
+CorrelationId:
+  type: string
+  pattern: '^[0-9a-fA-F]{32}$'
+  description: Identificador de correlação para suporte operacional
+RequestId:
+  type: string
+  format: uuid
+  description: Chave de idempotência da requisição. UUID versão 4.
+SyncVerificationResult:
+  type: string
+  enum:
+    - OK
+    - NOK
+SyncVerifier:
+  type: string
+  pattern: '^[0-9a-fA-F]{64}$'
+  example: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'
+SyncVerification:
+  type: object
+  properties:
+    Participant:
+      allOf:
+        - $ref: '#/ISPB'
+        - description: Identificador SPB do participante custodiante das chaves
+    KeyType:
+      $ref: '#/KeyType'
+    ParticipantSyncVerifier:
+      allOf:
+        - $ref: '#/SyncVerifier'
+        - description: Verificador de sincronismo calculado pelo participante
+  required:
+    - Participant
+    - KeyType
+    - ParticipantSyncVerifier
+ExtendedSyncVerification:
+  allOf:
+    - $ref: '#/SyncVerification'
+    - type: object
+      xml:
+        name: SyncVerification
+      properties:
+        Id:
+          type: integer
+        Result:
+          $ref: '#/SyncVerificationResult'
+      required:
+        - Id
+        - Result
+FileStatus:
+  type: string
+  description: Status de geração do arquivo.
+  enum:
+    - REQUESTED
+    - PROCESSING
+    - AVAILABLE
+    - UNAVAILABLE
+    - ERROR
+  example: AVAILABLE
+CidSetFile:
+  type: object
+  properties:
+    Id:
+      type: integer
+    Status:
+      allOf:
+        - $ref: '#/FileStatus'
+        - description: Status de geração do arquivo de CIDs
+    Participant:
+      allOf:
+        - $ref: '#/ISPB'
+        - description: Identificador SPB do participante custodiante das chaves
+    KeyType:
+      $ref: '#/KeyType'
+    RequestTime:
+      type: string
+      format: date-time
+      description: Data-hora de solicitação da geração do arquivo.
+    CreationTime:
+      type: string
+      format: date-time
+      description: Data-hora em que o arquivo foi gerado. Presente quando status for `AVAILABLE`.
+    Url:
+      type: string
+      description: URL para download do arquivo. Presente quando status for `AVAILABLE`.
+      maxLength: 500
+      example: https://alguma_url.algum_dominio/algum_path/nome_do_arquivo_gerado_pelo_dict.tipo
+    Bytes:
+      type: integer
+      description: Tamanho do arquivo. Presente quando status for `AVAILABLE`.
+    Sha256:
+      type: string
+      description: SHA256 do conteúdo do arquivo. Presente quando status for `AVAILABLE`.
+      pattern: '^[0-9a-fA-F]{64}$'
+      example: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'
+  required:
+    - Id
+    - Status
+    - Participant
+    - KeyType
+    - RequestTime
+Counter:
+  type: object
+  description: Contador de eventos agregados por tipo em diversas janelas temporais.
+  properties:
+    type:
+      type: string
+      description: Tipo do contador.
+      xml:
+        attribute: true
+      enum:
+        - SETTLEMENTS
+        - REPORTED_FRAUDS
+        - CONFIRMED_FRAUDS
+    by:
+      type: string
+      description: Agregador (chave, dono ou conta).
+      xml:
+        attribute: true
+      enum:
+        - KEY
+        - OWNER
+        - ACCOUNT
+    d3:
+      description: Valor para os últimos 3 dias
+      type: integer
+      xml:
+        attribute: true
+    d30:
+      description: Valor para os últimos 30 dias
+      type: integer
+      xml:
+        attribute: true
+    m6:
+      description: Valor para os últimos 6 meses (sem contar o mês corrente)
+      type: integer
+      xml:
+        attribute: true
+Statistics:
+  type: object
+  description: Dados de estatísticos relacionados à chave, ao dono ou à conta
+  properties:
+    LastUpdated:
+      type: string
+      format: date-time
+      description: data-hora da última atualização dos dados antifraude
+    Counters:
+      type: array
+      description: Contadores de eventos de algum tipo
+      items:
+        $ref: '#/Counter'
+InfractionType:
+  type: string
+  description: Tipo da infração
+  enum:
+    - FRAUD
+    - REFUND_REQUEST
+    - REFUND_CANCELLED
+ReportedBy:
+  type: string
+  description: Participante que deu origem ao relato de infração
+  enum:
+    - DEBITED_PARTICIPANT
+    - CREDITED_PARTICIPANT
+InfractionReportStatus:
+  type: string
+  enum:
+    - OPEN
+    - ACKNOWLEDGED
+    - CLOSED
+    - CANCELLED
+AnalysisResult:
+  type: string
+  description: Resultado da análise da infração.
+  enum:
+    - AGREED
+    - DISAGREED
+AnalysisDetails:
+          description: Detalhes da análise da infração, que possam orientar o pagador dos próximos passos.
+          maxLength: 2000
+InfractionReport:
+  type: object
+  description: Relato de infração sobre uma transação
+  properties:
+    TransactionId:
+      type: string
+      description: Transação com suspeita de infração
+      example: 'E9999901012341234123412345678900'
+      pattern: '\w{32}'
+    InfractionType:
+      $ref: '#/InfractionType'
+    ReportDetails:
+      description: Detalhes que possam ajudar o participante recebedor a analisar a suspeita de infração
+      maxLength: 2000
+  required:
+    - TransactionId
+    - InfractionType
+ExtendedInfractionReport:
+  allOf:
+    - $ref: '#/InfractionReport'
+    - type: object
+      xml:
+        name: InfractionReport
+      properties:
+        Id:
+          type: string
+          format: uuid
+        ReportedBy:
+          $ref: '#/ReportedBy'
+        Status:
+          $ref: '#/InfractionReportStatus'
+        DebitedParticipant:
+          allOf:
+            - $ref: '#/ISPB'
+            - description: Identificador SPB do participante do pagador da transação.
+        CreditedParticipant:
+          allOf:
+            - $ref: '#/ISPB'
+            - description: Identificador SPB do participante do recebedor da transação.
+        CreationTime:
+          type: string
+          format: date-time
+          description: Data-hora da criação do relato de infração
+        LastModified:
+          type: string
+          format: date-time
+          description: Data-hora da última atualização de status
+        AnalysisResult:
+          $ref: '#/AnalysisResult'
+        AnalysisDetails:
+          $ref: '#/AnalysisDetails'
+      required:
+        - Id
+        - ReportedBy
+        - Status
+        - DebitedParticipant
+        - CreditedParticipant
+        - CreationTime
+        - LastModified
+Person:
+  type: object
+  description: Dados de pessoa física ou jurídica
+  oneOf:
+    - $ref: ./schemas/NaturalPerson.yaml
+    - $ref: ./schemas/LegalPerson.yaml
+Refund:
+  type: object
+  description: Solicitação de devolução de uma transação.
+  properties:
+    TransactionId:
+      type: string
+      description: Transação sendo contestada.
+      example: 'E9999901012341234123412345678900'
+      pattern: '\w{32}'
+    RefundReason:
+      $ref: '#/RefundReason'
+    RefundAmount:
+      type: number
+      format: currency
+      description: Valor solicitado para devolução.
+      example: '100.00'
+    RefundDetails:
+      description: Breve descrição do motivo da solicitação de devolução.
+      maxLength: 2000
+  required:
+    - TransactionId
+    - RefundReason
+    - RefundAmount
+ExtendedRefund:
+  allOf:
+    - $ref: '#/Refund'
+    - type: object
+      xml:
+        name: Refund
+      properties:
+        Id:
+          type: string
+          format: uuid
+        Status:
+          $ref: '#/RefundStatus'
+        RequestingParticipant:
+          allOf:
+            - $ref: '#/ISPB'
+            - description: Identificador SPB do participante solicitante da devolução.
+        ContestedParticipant:
+          allOf:
+            - $ref: '#/ISPB'
+            - description: Identificador SPB do participante sendo contestado.
+        CreationTime:
+          type: string
+          format: date-time
+          description: Data-hora da criação da requisição de devolução.
+        LastModified:
+          type: string
+          format: date-time
+          description: Data-hora da última atualização de status.
+        InfractionReportId:
+          type: string
+          format: uuid
+          description: Identificador do relato de infração no caso de devolução por fraude.
+        AnalysisResult:
+          $ref: '#/RefundAnalysisResult'
+        AnalysisDetails:
+          $ref: '#/RefundAnalysisDetails'
+        RefundRejectionReason:
+          $ref: '#/RefundRejectionReason'
+        RefundTransactionId:
+          type: string
+          description: Transação de devolução (completa ou parcial)
+          example: 'D9999901012341234123412345678900'
+          pattern: '\w{32}'
+      required:
+        - Id
+        - Status
+        - RequestingParticipant
+        - ContestedParticipant
+        - CreationTime
+        - LastModified
+RefundStatus:
+  type: string
+  enum:
+    - OPEN
+    - CLOSED
+    - CANCELLED
+RefundAnalysisResult:
+  type: string
+  description: Resultado da análise da requisição de devolução pelo constestado.
+  enum:
+    - TOTALLY_ACCEPTED
+    - PARCIALlY_ACCEPTED
+    - REJECTED
+RefundAnalysisDetails:
+  description: Detalhes da análise da requisição de devolução indicando a motivação do resultado.
+  maxLength: 2000
+RefundReason:
+  type: string
+  enum:
+    - FRAUD
+    - OPERATIONAL_FLAW
+    - REFUND_CANCELLED
+  description: Razão da solicitação de devolução.
+RefundRejectionReason:
+  type: string
+  enum:
+    - NO_BALANCE
+    - ACCOUNT_CLOSURE
+    - CANNOT_REFUND
+  description: Razão da rejeição da solicitação de devolução.
 #### SYNC REQ-RESP #####
 
-  CreateCidSetFileRequest:
-    type: object
-    properties:
-      Signature:
-        type: object
-        xml:
-          prefix: ds
-          namespace: 'http://www.w3.org/2000/09/xmldsig#'
-      Participant:
-        allOf:
-          - $ref: '#/ISPB'
-          - description: Identificador SPB do participante custodiante das chaves.
-      KeyType:
-        $ref: '#/KeyType'
-    required:
-      - Participant
-      - KeyType
-  CreateCidSetFileResponse:
-    type: object
-    properties:
-      Signature:
-        type: object
-        xml:
-          prefix: ds
-          namespace: 'http://www.w3.org/2000/09/xmldsig#'
-      ResponseTime:
-        type: string
-        format: date-time
-      CorrelationId:
-        $ref: '#/CorrelationId'
-      CidSetFile:
-        $ref: '#/CidSetFile'
-    required:
-      - ResponseTime
-      - CorrelationId
-      - CidSetFile
-  GetCidSetFileResponse:
-    type: object
-    properties:
-      Signature:
-        type: object
-        xml:
-          prefix: ds
-          namespace: 'http://www.w3.org/2000/09/xmldsig#'
-      ResponseTime:
-        type: string
-        format: date-time
-      CorrelationId:
-        $ref: '#/CorrelationId'
-      CidSetFile:
-        $ref: '#/CidSetFile'
-    required:
-      - ResponseTime
-      - CorrelationId
-      - CidSetFile
-  CreateSyncVerificationRequest:
-    type: object
-    properties:
-      Signature:
-        type: object
-        xml:
-          prefix: ds
-          namespace: 'http://www.w3.org/2000/09/xmldsig#'
-      SyncVerification:
-        $ref: '#/SyncVerification'
-    required:
-      - SyncVerification
-  CreateSyncVerificationResponse:
-    type: object
-    properties:
-      Signature:
-        type: object
-        xml:
-          prefix: ds
-          namespace: 'http://www.w3.org/2000/09/xmldsig#'
-      SyncVerification:
-        $ref: '#/ExtendedSyncVerification'
-      ResponseTime:
-        type: string
-        format: date-time
-      CorrelationId:
-        $ref: '#/CorrelationId'
-    required:
-      - SyncVerification
-  ListCidSetEventsResponse:
-    type: object
-    properties:
-      Signature:
-        type: object
-        xml:
-          prefix: ds
-          namespace: 'http://www.w3.org/2000/09/xmldsig#'
-      ResponseTime:
-        type: string
-        format: date-time
-      CorrelationId:
-        $ref: '#/CorrelationId'
-      HasMoreElements:
-        type: boolean
-        description: Existem mais elementos para iterar
-      Participant:
-        allOf:
-          - $ref: '#/ISPB'
-          - description: Identificador SPB do participante custodiante das chaves
-      KeyType:
-        $ref: '#/KeyType'
-      StartTime:
-        type: string
-        format: date-time
-        description: Data-hora do primeiro evento da lista
-      EndTime:
-        type: string
-        format: date-time
-        description: Data-hora do último evento da lista
-      SyncVerifierStart:
-        allOf:
-          - $ref: '#/SyncVerifier'
-          - description: Verificador de sincronismo após primeiro evento
-      SyncVerifierEnd:
-        allOf:
-          - $ref: '#/SyncVerifier'
-          - description: Verificador de sincronismo após último evento
-      CidSetEvents:
-        type: array
-        items:
-          $ref: '#/CidSetEvent'
-    required:
-      - ResponseTime
-      - CorrelationId
-      - HasMoreElements
-      - Participant
-      - KeyType
-      - StartTime
-      - EndTime
-      - SyncVerifierStart
-      - SyncVerifierEnd
-  GetEntryByCidResponse:
-    type: object
-    properties:
-      Signature:
-        type: object
-        xml:
-          prefix: ds
-          namespace: 'http://www.w3.org/2000/09/xmldsig#'
-      ResponseTime:
-        type: string
-        format: date-time
-      CorrelationId:
-        $ref: '#/CorrelationId'
-      Cid:
-        $ref: '#/Cid'
-      Entry:
-        $ref: '#/ExtendedEntry'
-      RequestId:
-        allOf:
-          - $ref: '#/RequestId'
-          - description: RequestId utilizado na criação do vínculo
-    required:
-      - ResponseTime
-      - CorrelationId
-      - Cid
-      - Entry
-      - RequestId
+CreateCidSetFileRequest:
+  type: object
+  properties:
+    Signature:
+      type: object
+      xml:
+        prefix: ds
+        namespace: 'http://www.w3.org/2000/09/xmldsig#'
+    Participant:
+      allOf:
+        - $ref: '#/ISPB'
+        - description: Identificador SPB do participante custodiante das chaves.
+    KeyType:
+      $ref: '#/KeyType'
+  required:
+    - Participant
+    - KeyType
+CreateCidSetFileResponse:
+  type: object
+  properties:
+    Signature:
+      type: object
+      xml:
+        prefix: ds
+        namespace: 'http://www.w3.org/2000/09/xmldsig#'
+    ResponseTime:
+      type: string
+      format: date-time
+    CorrelationId:
+      $ref: '#/CorrelationId'
+    CidSetFile:
+      $ref: '#/CidSetFile'
+  required:
+    - ResponseTime
+    - CorrelationId
+    - CidSetFile
+GetCidSetFileResponse:
+  type: object
+  properties:
+    Signature:
+      type: object
+      xml:
+        prefix: ds
+        namespace: 'http://www.w3.org/2000/09/xmldsig#'
+    ResponseTime:
+      type: string
+      format: date-time
+    CorrelationId:
+      $ref: '#/CorrelationId'
+    CidSetFile:
+      $ref: '#/CidSetFile'
+  required:
+    - ResponseTime
+    - CorrelationId
+    - CidSetFile
+CreateSyncVerificationRequest:
+  type: object
+  properties:
+    Signature:
+      type: object
+      xml:
+        prefix: ds
+        namespace: 'http://www.w3.org/2000/09/xmldsig#'
+    SyncVerification:
+      $ref: '#/SyncVerification'
+  required:
+    - SyncVerification
+CreateSyncVerificationResponse:
+  type: object
+  properties:
+    Signature:
+      type: object
+      xml:
+        prefix: ds
+        namespace: 'http://www.w3.org/2000/09/xmldsig#'
+    SyncVerification:
+      $ref: '#/ExtendedSyncVerification'
+    ResponseTime:
+      type: string
+      format: date-time
+    CorrelationId:
+      $ref: '#/CorrelationId'
+  required:
+    - SyncVerification
+ListCidSetEventsResponse:
+  type: object
+  properties:
+    Signature:
+      type: object
+      xml:
+        prefix: ds
+        namespace: 'http://www.w3.org/2000/09/xmldsig#'
+    ResponseTime:
+      type: string
+      format: date-time
+    CorrelationId:
+      $ref: '#/CorrelationId'
+    HasMoreElements:
+      type: boolean
+      description: Existem mais elementos para iterar
+    Participant:
+      allOf:
+        - $ref: '#/ISPB'
+        - description: Identificador SPB do participante custodiante das chaves
+    KeyType:
+      $ref: '#/KeyType'
+    StartTime:
+      type: string
+      format: date-time
+      description: Data-hora do primeiro evento da lista
+    EndTime:
+      type: string
+      format: date-time
+      description: Data-hora do último evento da lista
+    SyncVerifierStart:
+      allOf:
+        - $ref: '#/SyncVerifier'
+        - description: Verificador de sincronismo após primeiro evento
+    SyncVerifierEnd:
+      allOf:
+        - $ref: '#/SyncVerifier'
+        - description: Verificador de sincronismo após último evento
+    CidSetEvents:
+      type: array
+      items:
+        $ref: '#/CidSetEvent'
+  required:
+    - ResponseTime
+    - CorrelationId
+    - HasMoreElements
+    - Participant
+    - KeyType
+    - StartTime
+    - EndTime
+    - SyncVerifierStart
+    - SyncVerifierEnd
+GetEntryByCidResponse:
+  type: object
+  properties:
+    Signature:
+      type: object
+      xml:
+        prefix: ds
+        namespace: 'http://www.w3.org/2000/09/xmldsig#'
+    ResponseTime:
+      type: string
+      format: date-time
+    CorrelationId:
+      $ref: '#/CorrelationId'
+    Cid:
+      $ref: '#/Cid'
+    Entry:
+      $ref: '#/ExtendedEntry'
+    RequestId:
+      allOf:
+        - $ref: '#/RequestId'
+        - description: RequestId utilizado na criação do vínculo
+  required:
+    - ResponseTime
+    - CorrelationId
+    - Cid
+    - Entry
+    - RequestId
 
 ##### CLAIM REQ-RESP #####
 
-  CreateClaimRequest:
-    type: object
-    properties:
-      Signature:
-        type: object
-        xml:
-          prefix: ds
-          namespace: 'http://www.w3.org/2000/09/xmldsig#'
-      Claim:
-        $ref: '#/Claim'
-    required:
-      - Claim
-  CreateClaimResponse:
-    type: object
-    properties:
-      Signature:
-        type: object
-        xml:
-          prefix: ds
-          namespace: 'http://www.w3.org/2000/09/xmldsig#'
-      ResponseTime:
-        type: string
-        format: date-time
-      CorrelationId:
-        $ref: '#/CorrelationId'
-      Claim:
+CreateClaimRequest:
+  type: object
+  properties:
+    Signature:
+      type: object
+      xml:
+        prefix: ds
+        namespace: 'http://www.w3.org/2000/09/xmldsig#'
+    Claim:
+      $ref: '#/Claim'
+  required:
+    - Claim
+CreateClaimResponse:
+  type: object
+  properties:
+    Signature:
+      type: object
+      xml:
+        prefix: ds
+        namespace: 'http://www.w3.org/2000/09/xmldsig#'
+    ResponseTime:
+      type: string
+      format: date-time
+    CorrelationId:
+      $ref: '#/CorrelationId'
+    Claim:
+      $ref: '#/ExtendedClaim'
+  required:
+    - ResponseTime
+    - CorrelationId
+    - Claim
+AcknowledgeClaimRequest:
+  type: object
+  properties:
+    Signature:
+      type: object
+      xml:
+        prefix: ds
+        namespace: 'http://www.w3.org/2000/09/xmldsig#'
+    ClaimId:
+      type: string
+      format: uuid
+    Participant:
+      allOf:
+        - $ref: '#/ISPB'
+        - description: "Identificador SPB do doador"
+  required:
+    - ClaimId
+    - Participant
+AcknowledgeClaimResponse:
+  type: object
+  properties:
+    Signature:
+      type: object
+      xml:
+        prefix: ds
+        namespace: 'http://www.w3.org/2000/09/xmldsig#'
+    ResponseTime:
+      type: string
+      format: date-time
+    CorrelationId:
+      $ref: '#/CorrelationId'
+    Claim:
+      $ref: '#/ExtendedClaim'
+  required:
+    - ResponseTime
+    - CorrelationId
+    - Claim
+ConfirmClaimRequest:
+  type: object
+  properties:
+    Signature:
+      type: object
+      xml:
+        prefix: ds
+        namespace: 'http://www.w3.org/2000/09/xmldsig#'
+    ClaimId:
+      type: string
+      format: uuid
+    Participant:
+      allOf:
+        - $ref: '#/ISPB'
+        - description: "Identificador SPB do doador"
+    Reason:
+      $ref: '#/ClaimOperationReason'
+  required:
+    - ClaimId
+    - Participant
+    - Reason
+ConfirmClaimResponse:
+  type: object
+  properties:
+    Signature:
+      type: object
+      xml:
+        prefix: ds
+        namespace: 'http://www.w3.org/2000/09/xmldsig#'
+    ResponseTime:
+      type: string
+      format: date-time
+    CorrelationId:
+      $ref: '#/CorrelationId'
+    Claim:
+      $ref: '#/ExtendedClaim'
+  required:
+    - ResponseTime
+    - CorrelationId
+    - Claim
+CancelClaimRequest:
+  type: object
+  properties:
+    Signature:
+      type: object
+      xml:
+        prefix: ds
+        namespace: 'http://www.w3.org/2000/09/xmldsig#'
+    ClaimId:
+      type: string
+      format: uuid
+    Participant:
+      allOf:
+        - $ref: '#/ISPB'
+        - description: "Identificador SPB do doador ou reivindicador"
+    Reason:
+      $ref: '#/ClaimOperationReason'
+  required:
+    - ClaimId
+    - Participant
+    - Reason
+CancelClaimResponse:
+  type: object
+  properties:
+    Signature:
+      type: object
+      xml:
+        prefix: ds
+        namespace: 'http://www.w3.org/2000/09/xmldsig#'
+    ResponseTime:
+      type: string
+      format: date-time
+    CorrelationId:
+      $ref: '#/CorrelationId'
+    Claim:
+      $ref: '#/ExtendedClaim'
+  required:
+    - ResponseTime
+    - CorrelationId
+    - Claim
+CompleteClaimRequest:
+  type: object
+  properties:
+    Signature:
+      type: object
+      xml:
+        prefix: ds
+        namespace: 'http://www.w3.org/2000/09/xmldsig#'
+    ClaimId:
+      type: string
+      format: uuid
+    Participant:
+      allOf:
+        - $ref: '#/ISPB'
+        - description: "Identificador SPB do reivindicador"
+    RequestId:
+      $ref: '#/RequestId'
+  required:
+    - ClaimId
+    - Participant
+    - RequestId
+CompleteClaimResponse:
+  type: object
+  properties:
+    Signature:
+      type: object
+      xml:
+        prefix: ds
+        namespace: 'http://www.w3.org/2000/09/xmldsig#'
+    ResponseTime:
+      type: string
+      format: date-time
+    CorrelationId:
+      $ref: '#/CorrelationId'
+    Claim:
+      $ref: '#/ExtendedClaim'
+    EntryCreationDate:
+      $ref: '#/EntryCreationDate'
+    KeyOwnershipDate:
+      $ref: '#/KeyOwnershipDate'
+  required:
+    - ResponseTime
+    - CorrelationId
+    - Claim
+    - EntryCreationDate
+    - KeyOwnershipDate
+GetClaimResponse:
+  type: object
+  properties:
+    Signature:
+      type: object
+      xml:
+        prefix: ds
+        namespace: 'http://www.w3.org/2000/09/xmldsig#'
+    ResponseTime:
+      type: string
+      format: date-time
+    CorrelationId:
+      $ref: '#/CorrelationId'
+    Claim:
+      $ref: '#/ExtendedClaim'
+  required:
+    - ResponseTime
+    - CorrelationId
+    - Claim
+ListClaimsResponse:
+  type: object
+  properties:
+    Signature:
+      type: object
+      xml:
+        prefix: ds
+        namespace: 'http://www.w3.org/2000/09/xmldsig#'
+    ResponseTime:
+      type: string
+      format: date-time
+    CorrelationId:
+      $ref: '#/CorrelationId'
+    HasMoreElements:
+      type: boolean
+      description: Existem mais elementos para iterar
+    Claims:
+      type: array
+      items:
         $ref: '#/ExtendedClaim'
-    required:
-      - ResponseTime
-      - CorrelationId
-      - Claim
-  AcknowledgeClaimRequest:
-    type: object
-    properties:
-      Signature:
-        type: object
-        xml:
-          prefix: ds
-          namespace: 'http://www.w3.org/2000/09/xmldsig#'
-      ClaimId:
-        type: string
-        format: uuid
-      Participant:
-        allOf:
-          - $ref: '#/ISPB'
-          - description: "Identificador SPB do doador"
-    required:
-      - ClaimId
-      - Participant
-  AcknowledgeClaimResponse:
-    type: object
-    properties:
-      Signature:
-        type: object
-        xml:
-          prefix: ds
-          namespace: 'http://www.w3.org/2000/09/xmldsig#'
-      ResponseTime:
-        type: string
-        format: date-time
-      CorrelationId:
-        $ref: '#/CorrelationId'
-      Claim:
-        $ref: '#/ExtendedClaim'
-    required:
-      - ResponseTime
-      - CorrelationId
-      - Claim
-  ConfirmClaimRequest:
-    type: object
-    properties:
-      Signature:
-        type: object
-        xml:
-          prefix: ds
-          namespace: 'http://www.w3.org/2000/09/xmldsig#'
-      ClaimId:
-        type: string
-        format: uuid
-      Participant:
-        allOf:
-          - $ref: '#/ISPB'
-          - description: "Identificador SPB do doador"
-      Reason:
-        $ref: '#/ClaimOperationReason'
-    required:
-      - ClaimId
-      - Participant
-      - Reason
-  ConfirmClaimResponse:
-    type: object
-    properties:
-      Signature:
-        type: object
-        xml:
-          prefix: ds
-          namespace: 'http://www.w3.org/2000/09/xmldsig#'
-      ResponseTime:
-        type: string
-        format: date-time
-      CorrelationId:
-        $ref: '#/CorrelationId'
-      Claim:
-        $ref: '#/ExtendedClaim'
-    required:
-      - ResponseTime
-      - CorrelationId
-      - Claim
-  CancelClaimRequest:
-    type: object
-    properties:
-      Signature:
-        type: object
-        xml:
-          prefix: ds
-          namespace: 'http://www.w3.org/2000/09/xmldsig#'
-      ClaimId:
-        type: string
-        format: uuid
-      Participant:
-        allOf:
-          - $ref: '#/ISPB'
-          - description: "Identificador SPB do doador ou reivindicador"
-      Reason:
-        $ref: '#/ClaimOperationReason'
-    required:
-      - ClaimId
-      - Participant
-      - Reason
-  CancelClaimResponse:
-    type: object
-    properties:
-      Signature:
-        type: object
-        xml:
-          prefix: ds
-          namespace: 'http://www.w3.org/2000/09/xmldsig#'
-      ResponseTime:
-        type: string
-        format: date-time
-      CorrelationId:
-        $ref: '#/CorrelationId'
-      Claim:
-        $ref: '#/ExtendedClaim'
-    required:
-      - ResponseTime
-      - CorrelationId
-      - Claim
-  CompleteClaimRequest:
-    type: object
-    properties:
-      Signature:
-        type: object
-        xml:
-          prefix: ds
-          namespace: 'http://www.w3.org/2000/09/xmldsig#'
-      ClaimId:
-        type: string
-        format: uuid
-      Participant:
-        allOf:
-          - $ref: '#/ISPB'
-          - description: "Identificador SPB do reivindicador"
-      RequestId:
-        $ref: '#/RequestId'
-    required:
-      - ClaimId
-      - Participant
-      - RequestId
-  CompleteClaimResponse:
-    type: object
-    properties:
-      Signature:
-        type: object
-        xml:
-          prefix: ds
-          namespace: 'http://www.w3.org/2000/09/xmldsig#'
-      ResponseTime:
-        type: string
-        format: date-time
-      CorrelationId:
-        $ref: '#/CorrelationId'
-      Claim:
-        $ref: '#/ExtendedClaim'
-      EntryCreationDate:
-        $ref: '#/EntryCreationDate'
-      KeyOwnershipDate:
-        $ref: '#/KeyOwnershipDate'
-    required:
-      - ResponseTime
-      - CorrelationId
-      - Claim
-      - EntryCreationDate
-      - KeyOwnershipDate
-  GetClaimResponse:
-    type: object
-    properties:
-      Signature:
-        type: object
-        xml:
-          prefix: ds
-          namespace: 'http://www.w3.org/2000/09/xmldsig#'
-      ResponseTime:
-        type: string
-        format: date-time
-      CorrelationId:
-        $ref: '#/CorrelationId'
-      Claim:
-        $ref: '#/ExtendedClaim'
-    required:
-      - ResponseTime
-      - CorrelationId
-      - Claim
-  ListClaimsResponse:
-    type: object
-    properties:
-      Signature:
-        type: object
-        xml:
-          prefix: ds
-          namespace: 'http://www.w3.org/2000/09/xmldsig#'
-      ResponseTime:
-        type: string
-        format: date-time
-      CorrelationId:
-        $ref: '#/CorrelationId'
-      HasMoreElements:
-        type: boolean
-        description: Existem mais elementos para iterar
-      Claims:
-        type: array
-        items:
-          $ref: '#/ExtendedClaim'
-    required:
-      - ResponseTime
-      - CorrelationId
-      - HasMoreElements
+  required:
+    - ResponseTime
+    - CorrelationId
+    - HasMoreElements
 
 ##### ENTRY REQ-RESP #####
 
-  CreateEntryRequest:
-    type: object
-    properties:
-      Signature:
-        type: object
-        xml:
-          prefix: ds
-          namespace: 'http://www.w3.org/2000/09/xmldsig#'
-      Entry:
-        $ref: '#/Entry'
-      Reason:
-        allOf:
-          - $ref: '#/EntryOperationReason'
-          - description: "Valores válidos: `USER_REQUESTED` e `RECONCILIATION`"
-      RequestId:
-        $ref: '#/RequestId'
-    required:
-      - Entry
-      - Reason
-      - RequestId
-  UpdateEntryRequest:
-    type: object
-    properties:
-      Signature:
-        type: object
-        xml:
-          prefix: ds
-          namespace: 'http://www.w3.org/2000/09/xmldsig#'
-      Key:
-        $ref: "#/Key"
-      Account:
-        $ref: '#/BrazilianAccount'
-      Owner:
-        $ref: '#/Owner'
-      Reason:
-        allOf:
-          - $ref: '#/EntryOperationReason'
-          - description: "Valores válidos: `USER_REQUESTED`, `BRANCH_TRANSFER` e `RECONCILIATION`"
-    required:
-      - Key
-      - Reason
-  UpdateEntryResponse:
-    type: object
-    properties:
-      Signature:
-        type: object
-        xml:
-          prefix: ds
-          namespace: 'http://www.w3.org/2000/09/xmldsig#'
-      ResponseTime:
-        type: string
-        format: date-time
-      CorrelationId:
-        $ref: '#/CorrelationId'
-      Entry:
-        $ref: '#/ExtendedEntry'
-    required:
-      - ResponseTime
-      - CorrelationId
-      - Entry
-  CreateEntryResponse:
-    type: object
-    properties:
-      Signature:
-        type: object
-        xml:
-          prefix: ds
-          namespace: 'http://www.w3.org/2000/09/xmldsig#'
-      ResponseTime:
-        type: string
-        format: date-time
-      CorrelationId:
-        $ref: '#/CorrelationId'
-      Entry:
-        $ref: '#/ExtendedEntry'
-    required:
-      - ResponseTime
-      - CorrelationId
-      - Entry
-  DeleteEntryRequest:
-    type: object
-    properties:
-      Signature:
-        type: object
-        xml:
-          prefix: ds
-          namespace: 'http://www.w3.org/2000/09/xmldsig#'
-      Key:
-        $ref: "#/Key"
-      Participant:
-        allOf:
-          - $ref: '#/ISPB'
-          - description: "Identificador SPB do provedor da conta ao qual a chave está vinculada"
-      Reason:
-        allOf:
-          - $ref: '#/EntryOperationReason'
-          - description: "Valores válidos: `USER_REQUESTED`, `ACCOUNT_CLOSURE`, `ENTRY_INACTIVITY`, `RECONCILIATION` e `FRAUD`"
-    required:
-      - Key
-      - Participant
-      - Reason
-  DeleteEntryResponse:
-    type: object
-    properties:
-      Signature:
-        type: object
-        xml:
-          prefix: ds
-          namespace: 'http://www.w3.org/2000/09/xmldsig#'
-      ResponseTime:
-        type: string
-        format: date-time
-      CorrelationId:
-        $ref: '#/CorrelationId'
-      Key:
-        $ref: "#/Key"
-    required:
-      - ResponseTime
-      - CorrelationId
-      - Key
-  GetEntryResponse:
-    type: object
-    properties:
-      Signature:
-        type: object
-        xml:
-          prefix: ds
-          namespace: 'http://www.w3.org/2000/09/xmldsig#'
-      ResponseTime:
-        type: string
-        format: date-time
-      CorrelationId:
-        $ref: '#/CorrelationId'
-      Entry:
-        $ref: '#/ExtendedEntry'
-      Statistics:
-        $ref: '#/Statistics'
-    required:
-      - ResponseTime
-      - CorrelationId
-      - Entry
-      - Statistics
+CreateEntryRequest:
+  type: object
+  properties:
+    Signature:
+      type: object
+      xml:
+        prefix: ds
+        namespace: 'http://www.w3.org/2000/09/xmldsig#'
+    Entry:
+      $ref: '#/Entry'
+    Reason:
+      allOf:
+        - $ref: '#/EntryOperationReason'
+        - description: "Valores válidos: `USER_REQUESTED` e `RECONCILIATION`"
+    RequestId:
+      $ref: '#/RequestId'
+  required:
+    - Entry
+    - Reason
+    - RequestId
+UpdateEntryRequest:
+  type: object
+  properties:
+    Signature:
+      type: object
+      xml:
+        prefix: ds
+        namespace: 'http://www.w3.org/2000/09/xmldsig#'
+    Key:
+      $ref: "#/Key"
+    Account:
+      $ref: '#/BrazilianAccount'
+    Owner:
+      $ref: '#/Person'
+    Reason:
+      allOf:
+        - $ref: '#/EntryOperationReason'
+        - description: "Valores válidos: `USER_REQUESTED`, `BRANCH_TRANSFER` e `RECONCILIATION`"
+  required:
+    - Key
+    - Reason
+UpdateEntryResponse:
+  type: object
+  properties:
+    Signature:
+      type: object
+      xml:
+        prefix: ds
+        namespace: 'http://www.w3.org/2000/09/xmldsig#'
+    ResponseTime:
+      type: string
+      format: date-time
+    CorrelationId:
+      $ref: '#/CorrelationId'
+    Entry:
+      $ref: '#/ExtendedEntry'
+  required:
+    - ResponseTime
+    - CorrelationId
+    - Entry
+CreateEntryResponse:
+  type: object
+  properties:
+    Signature:
+      type: object
+      xml:
+        prefix: ds
+        namespace: 'http://www.w3.org/2000/09/xmldsig#'
+    ResponseTime:
+      type: string
+      format: date-time
+    CorrelationId:
+      $ref: '#/CorrelationId'
+    Entry:
+      $ref: '#/ExtendedEntry'
+  required:
+    - ResponseTime
+    - CorrelationId
+    - Entry
+DeleteEntryRequest:
+  type: object
+  properties:
+    Signature:
+      type: object
+      xml:
+        prefix: ds
+        namespace: 'http://www.w3.org/2000/09/xmldsig#'
+    Key:
+      $ref: "#/Key"
+    Participant:
+      allOf:
+        - $ref: '#/ISPB'
+        - description: "Identificador SPB do provedor da conta ao qual a chave está vinculada"
+    Reason:
+      allOf:
+        - $ref: '#/EntryOperationReason'
+        - description: "Valores válidos: `USER_REQUESTED`, `ACCOUNT_CLOSURE`, `ENTRY_INACTIVITY`, `RECONCILIATION` e `FRAUD`"
+  required:
+    - Key
+    - Participant
+    - Reason
+DeleteEntryResponse:
+  type: object
+  properties:
+    Signature:
+      type: object
+      xml:
+        prefix: ds
+        namespace: 'http://www.w3.org/2000/09/xmldsig#'
+    ResponseTime:
+      type: string
+      format: date-time
+    CorrelationId:
+      $ref: '#/CorrelationId'
+    Key:
+      $ref: "#/Key"
+  required:
+    - ResponseTime
+    - CorrelationId
+    - Key
+GetEntryResponse:
+  type: object
+  properties:
+    Signature:
+      type: object
+      xml:
+        prefix: ds
+        namespace: 'http://www.w3.org/2000/09/xmldsig#'
+    ResponseTime:
+      type: string
+      format: date-time
+    CorrelationId:
+      $ref: '#/CorrelationId'
+    Entry:
+      $ref: '#/ExtendedEntry'
+    Statistics:
+      $ref: '#/Statistics'
+  required:
+    - ResponseTime
+    - CorrelationId
+    - Entry
+    - Statistics
 
 ##### KEY REQ-RESP #####
 
-  CheckKeysRequest:
-    type: object
-    properties:
-      Keys:
-        type: array
-        description: Chaves de endereçamento
-        items:
-          $ref: '#/Key'
-    required:
-      - Keys
-  CheckKeysResponse:
-    type: object
-    properties:
-      Signature:
-        type: object
-        xml:
-          prefix: ds
-          namespace: 'http://www.w3.org/2000/09/xmldsig#'
-      ResponseTime:
-        type: string
-        format: date-time
-      CorrelationId:
-        $ref: '#/CorrelationId'
-      Keys:
-        type: array
-        description: Chaves de endereçamento
-        items:
-          $ref: '#/ExtendedKey'
-    required:
-      - Keys
+CheckKeysRequest:
+  type: object
+  properties:
+    Keys:
+      type: array
+      description: Chaves de endereçamento
+      items:
+        $ref: '#/Key'
+  required:
+    - Keys
+CheckKeysResponse:
+  type: object
+  properties:
+    Signature:
+      type: object
+      xml:
+        prefix: ds
+        namespace: 'http://www.w3.org/2000/09/xmldsig#'
+    ResponseTime:
+      type: string
+      format: date-time
+    CorrelationId:
+      $ref: '#/CorrelationId'
+    Keys:
+      type: array
+      description: Chaves de endereçamento
+      items:
+        $ref: '#/ExtendedKey'
+  required:
+    - Keys
 
 ##### INFRACTION-REPORT REQ-RESP ####
 
-  CreateInfractionReportRequest:
-    type: object
-    properties:
-      Signature:
-        type: object
-        xml:
-          prefix: ds
-          namespace: 'http://www.w3.org/2000/09/xmldsig#'
-      Participant:
-        allOf:
-          - $ref: '#/ISPB'
-          - description: "Identificador SPB do participante que identificou a infração"
-      InfractionReport:
-        $ref: '#/InfractionReport'
-    required:
-      - Participant
-      - InfractionReport
-  CreateInfractionReportResponse:
-    type: object
-    properties:
-      Signature:
-        type: object
-        xml:
-          prefix: ds
-          namespace: 'http://www.w3.org/2000/09/xmldsig#'     
-      ResponseTime:
-        type: string
-        format: date-time
-      CorrelationId:
-        $ref: '#/CorrelationId'
-      InfractionReport:
+CreateInfractionReportRequest:
+  type: object
+  properties:
+    Signature:
+      type: object
+      xml:
+        prefix: ds
+        namespace: 'http://www.w3.org/2000/09/xmldsig#'
+    Participant:
+      allOf:
+        - $ref: '#/ISPB'
+        - description: "Identificador SPB do participante que identificou a infração"
+    InfractionReport:
+      $ref: '#/InfractionReport'
+  required:
+    - Participant
+    - InfractionReport
+CreateInfractionReportResponse:
+  type: object
+  properties:
+    Signature:
+      type: object
+      xml:
+        prefix: ds
+        namespace: 'http://www.w3.org/2000/09/xmldsig#'
+    ResponseTime:
+      type: string
+      format: date-time
+    CorrelationId:
+      $ref: '#/CorrelationId'
+    InfractionReport:
+      $ref: '#/ExtendedInfractionReport'
+  required:
+    - ResponseTime
+    - CorrelationId
+    - InfractionReport
+GetInfractionReportResponse:
+  type: object
+  properties:
+    Signature:
+      type: object
+      xml:
+        prefix: ds
+        namespace: 'http://www.w3.org/2000/09/xmldsig#'
+    ResponseTime:
+      type: string
+      format: date-time
+    CorrelationId:
+      $ref: '#/CorrelationId'
+    InfractionReport:
+      $ref: '#/ExtendedInfractionReport'
+  required:
+    - ResponseTime
+    - CorrelationId
+    - InfractionReport
+ListInfractionReportsResponse:
+  type: object
+  properties:
+    Signature:
+      type: object
+      xml:
+        prefix: ds
+        namespace: 'http://www.w3.org/2000/09/xmldsig#'
+    ResponseTime:
+      type: string
+      format: date-time
+    CorrelationId:
+      $ref: '#/CorrelationId'
+    HasMoreElements:
+      type: boolean
+      description: Existem mais elementos para iterar
+    InfractionReports:
+      type: array
+      items:
         $ref: '#/ExtendedInfractionReport'
-    required:
-      - ResponseTime
-      - CorrelationId
-      - InfractionReport
-  GetInfractionReportResponse:
-    type: object
-    properties:
-      Signature:
-        type: object
-        xml:
-          prefix: ds
-          namespace: 'http://www.w3.org/2000/09/xmldsig#'     
-      ResponseTime:
-        type: string
-        format: date-time
-      CorrelationId:
-        $ref: '#/CorrelationId'
-      InfractionReport:
-        $ref: '#/ExtendedInfractionReport'
-    required:
-      - ResponseTime
-      - CorrelationId
-      - InfractionReport
-  ListInfractionReportsResponse:
-    type: object
-    properties:
-      Signature:
-        type: object
-        xml:
-          prefix: ds
-          namespace: 'http://www.w3.org/2000/09/xmldsig#'
-      ResponseTime:
-        type: string
-        format: date-time
-      CorrelationId:
-        $ref: '#/CorrelationId'
-      HasMoreElements:
-        type: boolean
-        description: Existem mais elementos para iterar
-      InfractionReports:
-        type: array
-        items:
-          $ref: '#/ExtendedInfractionReport'
-    required:
-      - ResponseTime
-      - CorrelationId
-      - HasMoreElements
-  AcknowledgeInfractionReportRequest:
-    type: object
-    properties:
-      Signature:
-        type: object
-        xml:
-          prefix: ds
-          namespace: 'http://www.w3.org/2000/09/xmldsig#'     
-      InfractionReportId:
-        type: string
-        format: uuid
-        description: ID do relato de infração
-      Participant:
-        allOf:
-          - $ref: '#/ISPB'
-          - description: 'Identificador SPB do participante realizando o ACK'
-    required:
-      - InfractionReportId
-      - Participant
-  AcknowledgeInfractionReportResponse:
-    type: object
-    properties:
-      Signature:
-        type: object
-        xml:
-          prefix: ds
-          namespace: 'http://www.w3.org/2000/09/xmldsig#'     
-      ResponseTime:
-        type: string
-        format: date-time
-      CorrelationId:
-        $ref: '#/CorrelationId'
-      InfractionReport:
-        $ref: '#/ExtendedInfractionReport'
-    required:
-      - ResponseTime
-      - CorrelationId
-      - InfractionReport
-  CancelInfractionReportRequest:
-    type: object
-    properties:
-      Signature:
-        type: object
-        xml:
-          prefix: ds
-          namespace: 'http://www.w3.org/2000/09/xmldsig#'     
-      InfractionReportId:
-        type: string
-        format: uuid
-        description: ID do relato de infração
-      Participant:
-        allOf:
-          - $ref: '#/ISPB'
-          - description: "Identificador SPB do participante que reportou a infração"
-    required:
-      - InfractionReportId
-      - Participant
-  CancelInfractionReportResponse:
-    type: object
-    properties:
-      Signature:
-        type: object
-        xml:
-          prefix: ds
-          namespace: 'http://www.w3.org/2000/09/xmldsig#'     
-      ResponseTime:
-        type: string
-        format: date-time
-      CorrelationId:
-        $ref: '#/CorrelationId'
-      InfractionReport:
-        $ref: '#/ExtendedInfractionReport'
-    required:
-      - ResponseTime
-      - CorrelationId
-      - InfractionReport
-  CloseInfractionReportRequest:
-    type: object
-    properties:
-      Signature:
-        type: object
-        xml:
-          prefix: ds
-          namespace: 'http://www.w3.org/2000/09/xmldsig#'     
-      InfractionReportId:
-        type: string
-        format: uuid
-        description: ID do relato de infração
-      Participant:
-        allOf:
-          - $ref: '#/ISPB'
-          - description: 'Identificador SPB do participante.'
-      AnalysisResult:
-        $ref: '#/AnalysisResult'
-      AnalysisDetails:
-        $ref: '#/AnalysisDetails'
-    required:
-      - InfractionReportId
-      - Participant
-      - AnalysisResult
-  CloseInfractionReportResponse:
-    type: object
-    properties:
-      Signature:
-        type: object
-        xml:
-          prefix: ds
-          namespace: 'http://www.w3.org/2000/09/xmldsig#'     
-      ResponseTime:
-        type: string
-        format: date-time
-      CorrelationId:
-        $ref: '#/CorrelationId'
-      InfractionReport:
-        $ref: '#/ExtendedInfractionReport'
-    required:
-      - ResponseTime
-      - CorrelationId
-      - InfractionReport
+  required:
+    - ResponseTime
+    - CorrelationId
+    - HasMoreElements
+AcknowledgeInfractionReportRequest:
+  type: object
+  properties:
+    Signature:
+      type: object
+      xml:
+        prefix: ds
+        namespace: 'http://www.w3.org/2000/09/xmldsig#'
+    InfractionReportId:
+      type: string
+      format: uuid
+      description: ID do relato de infração
+    Participant:
+      allOf:
+        - $ref: '#/ISPB'
+        - description: 'Identificador SPB do participante realizando o ACK'
+  required:
+    - InfractionReportId
+    - Participant
+AcknowledgeInfractionReportResponse:
+  type: object
+  properties:
+    Signature:
+      type: object
+      xml:
+        prefix: ds
+        namespace: 'http://www.w3.org/2000/09/xmldsig#'
+    ResponseTime:
+      type: string
+      format: date-time
+    CorrelationId:
+      $ref: '#/CorrelationId'
+    InfractionReport:
+      $ref: '#/ExtendedInfractionReport'
+  required:
+    - ResponseTime
+    - CorrelationId
+    - InfractionReport
+CancelInfractionReportRequest:
+  type: object
+  properties:
+    Signature:
+      type: object
+      xml:
+        prefix: ds
+        namespace: 'http://www.w3.org/2000/09/xmldsig#'
+    InfractionReportId:
+      type: string
+      format: uuid
+      description: ID do relato de infração
+    Participant:
+      allOf:
+        - $ref: '#/ISPB'
+        - description: "Identificador SPB do participante que reportou a infração"
+  required:
+    - InfractionReportId
+    - Participant
+CancelInfractionReportResponse:
+  type: object
+  properties:
+    Signature:
+      type: object
+      xml:
+        prefix: ds
+        namespace: 'http://www.w3.org/2000/09/xmldsig#'
+    ResponseTime:
+      type: string
+      format: date-time
+    CorrelationId:
+      $ref: '#/CorrelationId'
+    InfractionReport:
+      $ref: '#/ExtendedInfractionReport'
+  required:
+    - ResponseTime
+    - CorrelationId
+    - InfractionReport
+CloseInfractionReportRequest:
+  type: object
+  properties:
+    Signature:
+      type: object
+      xml:
+        prefix: ds
+        namespace: 'http://www.w3.org/2000/09/xmldsig#'
+    InfractionReportId:
+      type: string
+      format: uuid
+      description: ID do relato de infração
+    Participant:
+      allOf:
+        - $ref: '#/ISPB'
+        - description: 'Identificador SPB do participante.'
+    AnalysisResult:
+      $ref: '#/AnalysisResult'
+    AnalysisDetails:
+      $ref: '#/AnalysisDetails'
+  required:
+    - InfractionReportId
+    - Participant
+    - AnalysisResult
+CloseInfractionReportResponse:
+  type: object
+  properties:
+    Signature:
+      type: object
+      xml:
+        prefix: ds
+        namespace: 'http://www.w3.org/2000/09/xmldsig#'
+    ResponseTime:
+      type: string
+      format: date-time
+    CorrelationId:
+      $ref: '#/CorrelationId'
+    InfractionReport:
+      $ref: '#/ExtendedInfractionReport'
+  required:
+    - ResponseTime
+    - CorrelationId
+    - InfractionReport
 
 ##### REFUND REQ-RESP ####
 
-  CreateRefundRequest:
-    type: object
-    properties:
-      Signature:
-        type: object
-        xml:
-          prefix: ds
-          namespace: 'http://www.w3.org/2000/09/xmldsig#'
-      Participant:
-        allOf:
-          - $ref: '#/ISPB'
-          - description: "Identificador SPB do participante que está solicitando a devolução."
-      Refund:
-        $ref: '#/Refund'
-    required:
-      - Participant
-      - Refund
-  CreateRefundResponse:
-    type: object
-    properties:
-      Signature:
-        type: object
-        xml:
-          prefix: ds
-          namespace: 'http://www.w3.org/2000/09/xmldsig#'
-      ResponseTime:
-        type: string
-        format: date-time
-      CorrelationId:
-        $ref: '#/CorrelationId'
-      Refund:
+CreateRefundRequest:
+  type: object
+  properties:
+    Signature:
+      type: object
+      xml:
+        prefix: ds
+        namespace: 'http://www.w3.org/2000/09/xmldsig#'
+    Participant:
+      allOf:
+        - $ref: '#/ISPB'
+        - description: "Identificador SPB do participante que está solicitando a devolução."
+    Refund:
+      $ref: '#/Refund'
+  required:
+    - Participant
+    - Refund
+CreateRefundResponse:
+  type: object
+  properties:
+    Signature:
+      type: object
+      xml:
+        prefix: ds
+        namespace: 'http://www.w3.org/2000/09/xmldsig#'
+    ResponseTime:
+      type: string
+      format: date-time
+    CorrelationId:
+      $ref: '#/CorrelationId'
+    Refund:
+      $ref: '#/ExtendedRefund'
+  required:
+    - ResponseTime
+    - CorrelationId
+    - Refund
+ListRefundsResponse:
+  type: object
+  properties:
+    Signature:
+      type: object
+      xml:
+        prefix: ds
+        namespace: 'http://www.w3.org/2000/09/xmldsig#'
+    ResponseTime:
+      type: string
+      format: date-time
+    CorrelationId:
+      $ref: '#/CorrelationId'
+    HasMoreElements:
+      type: boolean
+      description: Existem mais elementos para iterar
+    Refunds:
+      type: array
+      items:
         $ref: '#/ExtendedRefund'
-    required:
-      - ResponseTime
-      - CorrelationId
-      - Refund
-  ListRefundsResponse:
-    type: object
-    properties:
-      Signature:
-        type: object
-        xml:
-          prefix: ds
-          namespace: 'http://www.w3.org/2000/09/xmldsig#'
-      ResponseTime:
-        type: string
-        format: date-time
-      CorrelationId:
-        $ref: '#/CorrelationId'
-      HasMoreElements:
-        type: boolean
-        description: Existem mais elementos para iterar
-      Refunds:
-        type: array
-        items:
-          $ref: '#/ExtendedRefund'
-    required:
-      - ResponseTime
-      - CorrelationId
-      - HasMoreElements
-  GetRefundResponse:
-    type: object
-    properties:
-      Signature:
-        type: object
-        xml:
-          prefix: ds
-          namespace: 'http://www.w3.org/2000/09/xmldsig#'
-      ResponseTime:
-        type: string
-        format: date-time
-      CorrelationId:
-        $ref: '#/CorrelationId'
-      Refund:
-        $ref: '#/ExtendedRefund'
-    required:
-      - ResponseTime
-      - CorrelationId
-      - Refund
-  CancelRefundRequest:
-    type: object
-    properties:
-      Signature:
-        type: object
-        xml:
-          prefix: ds
-          namespace: 'http://www.w3.org/2000/09/xmldsig#'
-      RefundId:
-        type: string
-        format: uuid
-        description: ID da solicitação de devolução
-      Participant:
-        allOf:
-          - $ref: '#/ISPB'
-          - description: "Identificador SPB do participante que abriu a solicitação"
-    required:
-      - RefundId
-      - Participant
-  CancelRefundResponse:
-    type: object
-    properties:
-      Signature:
-        type: object
-        xml:
-          prefix: ds
-          namespace: 'http://www.w3.org/2000/09/xmldsig#'
-      ResponseTime:
-        type: string
-        format: date-time
-      CorrelationId:
-        $ref: '#/CorrelationId'
-      Refund:
-        $ref: '#/ExtendedRefund'
-    required:
-      - ResponseTime
-      - CorrelationId
-      - Refund
-  CloseRefundRequest:
-    type: object
-    properties:
-      Signature:
-        type: object
-        xml:
-          prefix: ds
-          namespace: 'http://www.w3.org/2000/09/xmldsig#'
-      RefundId:
-        type: string
-        format: uuid
-        description: ID da solicitação de devolução
-      Participant:
-        allOf:
-          - $ref: '#/ISPB'
-          - description: 'Identificador SPB do participante contestado'
-      RefundAnalysisResult:
-        $ref: '#/RefundAnalysisResult'
-      RefundAnalysisDetails:
-        $ref: '#/RefundAnalysisDetails'
-      RefundRejectionReason:
-        $ref: '#/RefundRejectionReason'
-      RefundTransactionId:
-        type: string
-        description: Transação de devolução (completa ou parcial)
-        example: 'D9999901012341234123412345678900'
-        pattern: '\w{32}'
-    required:
-      - RefundId
-      - Participant
-      - RefundAnalysisResult
-  CloseRefundResponse:
-    type: object
-    properties:
-      Signature:
-        type: object
-        xml:
-          prefix: ds
-          namespace: 'http://www.w3.org/2000/09/xmldsig#'
-      ResponseTime:
-        type: string
-        format: date-time
-      CorrelationId:
-        $ref: '#/CorrelationId'
-      Refund:
-        $ref: '#/ExtendedRefund'
-    required:
-      - ResponseTime
-      - CorrelationId
-      - Refund
+  required:
+    - ResponseTime
+    - CorrelationId
+    - HasMoreElements
+GetRefundResponse:
+  type: object
+  properties:
+    Signature:
+      type: object
+      xml:
+        prefix: ds
+        namespace: 'http://www.w3.org/2000/09/xmldsig#'
+    ResponseTime:
+      type: string
+      format: date-time
+    CorrelationId:
+      $ref: '#/CorrelationId'
+    Refund:
+      $ref: '#/ExtendedRefund'
+  required:
+    - ResponseTime
+    - CorrelationId
+    - Refund
+CancelRefundRequest:
+  type: object
+  properties:
+    Signature:
+      type: object
+      xml:
+        prefix: ds
+        namespace: 'http://www.w3.org/2000/09/xmldsig#'
+    RefundId:
+      type: string
+      format: uuid
+      description: ID da solicitação de devolução
+    Participant:
+      allOf:
+        - $ref: '#/ISPB'
+        - description: "Identificador SPB do participante que abriu a solicitação"
+  required:
+    - RefundId
+    - Participant
+CancelRefundResponse:
+  type: object
+  properties:
+    Signature:
+      type: object
+      xml:
+        prefix: ds
+        namespace: 'http://www.w3.org/2000/09/xmldsig#'
+    ResponseTime:
+      type: string
+      format: date-time
+    CorrelationId:
+      $ref: '#/CorrelationId'
+    Refund:
+      $ref: '#/ExtendedRefund'
+  required:
+    - ResponseTime
+    - CorrelationId
+    - Refund
+CloseRefundRequest:
+  type: object
+  properties:
+    Signature:
+      type: object
+      xml:
+        prefix: ds
+        namespace: 'http://www.w3.org/2000/09/xmldsig#'
+    RefundId:
+      type: string
+      format: uuid
+      description: ID da solicitação de devolução
+    Participant:
+      allOf:
+        - $ref: '#/ISPB'
+        - description: 'Identificador SPB do participante contestado'
+    RefundAnalysisResult:
+      $ref: '#/RefundAnalysisResult'
+    RefundAnalysisDetails:
+      $ref: '#/RefundAnalysisDetails'
+    RefundRejectionReason:
+      $ref: '#/RefundRejectionReason'
+    RefundTransactionId:
+      type: string
+      description: Transação de devolução (completa ou parcial)
+      example: 'D9999901012341234123412345678900'
+      pattern: '\w{32}'
+  required:
+    - RefundId
+    - Participant
+    - RefundAnalysisResult
+CloseRefundResponse:
+  type: object
+  properties:
+    Signature:
+      type: object
+      xml:
+        prefix: ds
+        namespace: 'http://www.w3.org/2000/09/xmldsig#'
+    ResponseTime:
+      type: string
+      format: date-time
+    CorrelationId:
+      $ref: '#/CorrelationId'
+    Refund:
+      $ref: '#/ExtendedRefund'
+  required:
+    - ResponseTime
+    - CorrelationId
+    - Refund
 
 #################  
 
-  Problem:
-    type: object
-    xml:
-      name: 'problem'
-      namespace: 'urn:ietf:rfc:7807'
-    properties:
-      Signature:
-        type: object
-        xml:
-          prefix: ds
-          namespace: 'http://www.w3.org/2000/09/xmldsig#'
-      type:
-        type: string
-        format: uri
-        example: 'https://dict.pi.rsfn.net.br/api/v1/error/NotFound'
-      title:
-        type: string
-        example: 'Not found'
-      status:
-        type: integer
-        example: 404
-      detail:
-        type: string
-      correlationId:
-        type: string
-        description: Identificador de correlação do problema para fins de suporte
-      violations:
-        type: array
-        items:
-          $ref: '#/Violation'
-    required:
-      - type
-      - title
-      - status
-  Violation:
-    type: object
-    xml:
-      name: violation
-    properties:
-      reason:
-        type: string
-      value:
-        type: string
-      property:
-        type: string
-    required:
-      - reason
+Problem:
+  type: object
+  xml:
+    name: 'problem'
+    namespace: 'urn:ietf:rfc:7807'
+  properties:
+    Signature:
+      type: object
+      xml:
+        prefix: ds
+        namespace: 'http://www.w3.org/2000/09/xmldsig#'
+    type:
+      type: string
+      format: uri
+      example: 'https://dict.pi.rsfn.net.br/api/v1/error/NotFound'
+    title:
+      type: string
+      example: 'Not found'
+    status:
+      type: integer
+      example: 404
+    detail:
+      type: string
+    correlationId:
+      type: string
+      description: Identificador de correlação do problema para fins de suporte
+    violations:
+      type: array
+      items:
+        $ref: '#/Violation'
+  required:
+    - type
+    - title
+    - status
+Violation:
+  type: object
+  xml:
+    name: violation
+  properties:
+    reason:
+      type: string
+    value:
+      type: string
+    property:
+      type: string
+  required:
+    - reason

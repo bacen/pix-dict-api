@@ -8,6 +8,7 @@
         <Refund>
             <TransactionId>E9999901012341234123412345678900</TransactionId>
             <RefundReason>FRAUD</RefundReason>
+            <RefundAmount>200.00</RefundAmount>
             <RefundDetails>Transação feita através de QR Code falso em boleto</RefundDetails>
             <Id>91d65e98-97c0-4b0f-b577-73625da1f9fc</Id>
             <Status>CLOSED</Status>
@@ -19,6 +20,7 @@
             <AnalysisDetails>
                 Valor totalemente extornado.
             </AnalysisDetails>
+            <RefundTransactionId>D9999901012341234123412345678900</RefundTransactionId>
         </Refund>
     </Refunds>
 </ListRefundsResponse>

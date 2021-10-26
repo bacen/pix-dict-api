@@ -2,6 +2,37 @@
 
 Mudanças relevantes na API do DICT serão documentadas aqui.
 
+## [1.6.1] - 2021-10-26
+### Adicionado
+- Campo refundAmount no XML de exemplo de listagem de devoluções
+- Campo InfractionReportId em devoluções
+- Criada estrutura Person para unificar os tipos Owner e Claimer
+- Ajuste do campo Name para 120 caracteres
+
+### Alterado
+- Aumento do nome em PF e PJ para 120 caracteres
+
+## [1.6.0] - 2021-09-20
+### Adicionado
+- Categorias de baldes de A a F
+- Tratamento diferenciado para controle de limites de PF e PJ
+
+### Removido
+- Política ENTRIES_READ
+
+### Alterado
+- Tamanho do balde na ENTRIES_UPDATE
+
+## [1.5.0] - 2021-07-19
+### Adicionado
+- ID da PACS.004 na consulta de devolução
+- Parâmetro de indicação para inclusão de indiretos nas consultas de devolução e relatos de infração
+- Políticas de limites para iniciadores
+- Balde para controle de atualização de chaves
+
+### Alterado
+- Novo formato do PayerID (aberto e não mais psedonimizado)
+
 ## [1.4.0] - 2021-06-26
 ### Adicionado
 - Novo tipo de conta TRAN
@@ -62,7 +93,7 @@ Mudanças relevantes na API do DICT serão documentadas aqui.
 
 ### Alterado
 - Parâmetro ClaimStatus no _Endpoint_ listClaims passou a ser multi-valor (array)
-- A fórmula que calcula o erro de EntryLimitExceeded considerava Participant+Branch+AccountNumber, 
+- A fórmula que calcula o erro de EntryLimitExceeded considerava Participant+Branch+AccountNumber,
   passou a considerar Participant+Branch+AccountNumber+*AccountType*.
 
 ### Removido

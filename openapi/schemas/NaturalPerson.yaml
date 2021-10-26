@@ -1,0 +1,22 @@
+type: object
+title: NATURAL_PERSON
+properties:
+  Type:
+    description: Tipo de pessoa
+    type: string
+    example: NATURAL_PERSON
+  TaxIdNumber:
+    type: string
+    description: CPF - Cadastro de Pessoa Física
+    pattern: '^[0-9]{11}$'
+    example: '11122233300'
+  Name:
+    type: string
+    description: Nome completo
+    example: João Silva
+    maxLength: 120
+    pattern: ^([A-Za-zÀ-ÖØ-öø-ÿ' -]+)$
+required:
+  - Type
+  - TaxIdNumber
+  - Name

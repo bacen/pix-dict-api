@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<GetEntryResponse>
+    <Signature></Signature>
+    <ResponseTime>2020-01-10T10:00:00Z</ResponseTime>
+    <CorrelationId>a9f13566e19f5ca51329479a5bae60c5</CorrelationId>
+    <Entry>
+        <Key>11122233300</Key>
+        <KeyType>CPF</KeyType>
+        <Account>
+            <Participant>12345678</Participant>
+            <Branch>0001</Branch>
+            <AccountNumber>0007654321</AccountNumber>
+            <AccountType>CACC</AccountType>
+            <OpeningDate>2010-01-10T03:00:00Z</OpeningDate>
+        </Account>
+        <Owner>
+            <Type>NATURAL_PERSON</Type>
+            <TaxIdNumber>11122233300</TaxIdNumber>
+            <Name>João Silva</Name>
+        </Owner>
+        <CreationDate>2019-11-18T03:00:00Z</CreationDate>
+        <KeyOwnershipDate>2019-11-18T03:00:00Z</KeyOwnershipDate>
+        <OpenClaimCreationDate>2019-11-19T03:00:00Z</OpenClaimCreationDate>
+    </Entry>
+    <Statistics>
+        <LastUpdated>2020-01-17T10:00:00Z</LastUpdated>
+        <Counters>
+            <Counter type="SETTLEMENTS" by="KEY" d3="0" d30="5" m6="30"/>
+            <Counter type="SETTLEMENTS" by="OWNER" d3="0" d30="5" m6="30"/>
+            <Counter type="SETTLEMENTS" by="ACCOUNT" d3="0" d30="5" m6="30"/>
+            <Counter type="REPORTED_FRAUDS" by="KEY" d3="0" d30="5" m6="30"/>
+            <Counter type="REPORTED_FRAUDS" by="OWNER" d3="0" d30="5" m6="30"/>
+            <Counter type="REPORTED_FRAUDS" by="ACCOUNT" d3="0" d30="5" m6="30"/>
+            <Counter type="CONFIRMED_FRAUDS" by="KEY" d3="0" d30="5" m6="30"/>
+            <Counter type="CONFIRMED_FRAUDS" by="OWNER" d3="0" d30="5" m6="30"/>
+            <Counter type="CONFIRMED_FRAUDS" by="ACCOUNT" d3="0" d30="5" m6="30"/>
+        </Counters>
+    </Statistics>
+</GetEntryResponse>

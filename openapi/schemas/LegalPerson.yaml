@@ -1,0 +1,28 @@
+type: object
+title: LEGAL_PERSON
+properties:
+  Type:
+    description: Tipo de pessoa
+    type: string
+    example: LEGAL_PERSON
+  TaxIdNumber:
+    type: string
+    description: CNPJ - Cadastro Nacional de Pessoa Jurídica
+    example: '11222333000150'
+    pattern: '[0-9]{14}'
+  Name:
+    type: string
+    description: Razão social.
+    maxLength: 120
+    example: Padaria Tres Irmãos Ltda
+    pattern: ^([A-Za-zÀ-ÖØ-öø-ÿ,.@:&*+_<>()!?/\\$%\d' -]+)$
+  TradeName:
+    type: string
+    description: Nome fantasia.
+    maxLength: 100
+    example: Padaria 3 Irmãos
+    pattern: ^([A-Za-zÀ-ÖØ-öø-ÿ,.@:&*+_<>()!?/\\$%\d' -]+)$
+required:
+  - Type
+  - TaxIdNumber
+  - Name

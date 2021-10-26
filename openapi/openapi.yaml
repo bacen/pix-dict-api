@@ -1,7 +1,7 @@
 openapi: 3.0.0
 info:
   title: DICT API
-  version: '1.4.0'
+  version: '1.6.1'
   license:
     name: Apache 2.0
     url: http://www.apache.org/licenses/LICENSE-2.0
@@ -52,10 +52,13 @@ info:
 
     |  Política                            | Escopo   | Operações                                                                                            | Taxa de reposição | Tamanho do balde |
     |--------------------------------------|----------|------------------------------------------------------------------------------------------------------|-------------------|------------------|
-    | ENTRIES_READ_USER_ANTISCAN           | USER     | getEntry                                                                                             | 2/min             |  1000            |
-    | ENTRIES_READ_PARTICIPANT_ANTISCAN    | PSP      | getEntry                                                                                             | 6000/min          |  20000           |
-    | ENTRIES_READ                         | PSP      | getEntry                                                                                             | 8000/min          |  240000          |
-    | ENTRIES_WRITE                        | PSP      | createEntry, updateEntry, deleteEntry                                                                | 1200/min          |  36000           |
+    | ENTRIES_READ_USER_ANTISCAN           | USER     | getEntry                                                                                             | 2/min             |  (*)             |
+    | ENTRIES_READ_USER_ANTISCAN_V2        | USER     | getEntry                                                                                             | 2/min             |  (*)             |
+    | ENTRIES_READ_PARTICIPANT_ANTISCAN    | PSP      | getEntry                                                                                             | (**)              |  (**)            |
+    | ENTRIES_READ_PARTICIPANT_INITIATOR   | PSP      | getEntry                                                                                             | 400/min           |  5000            |
+    | ENTRIES_READ_USER_INITIATOR          | USER     | getEntry                                                                                             | 2/min             |  100             |
+    | ENTRIES_WRITE                        | PSP      | createEntry, deleteEntry                                                                             | 1200/min          |  36000           |
+    | ENTRIES_UPDATE                       | PSP      | updateEntry                                                                                          | 600/min           |  600             |
     | CLAIMS_READ                          | PSP      | getClaim                                                                                             | 600/min           |  18000           |
     | CLAIMS_WRITE                         | PSP      | createClaim, acknowledgeClaim, cancelClaim, confirmClaim, completeClaim                              | 1200/min          |  36000           |
     | CLAIMS_LIST_WITH_ROLE                | PSP      | listClaims                                                                                           | 40/min            |  200             |
@@ -79,14 +82,48 @@ info:
     - `ENTRIES_READ_USER_ANTISCAN`
       - Aplicável somente para chaves do tipo EMAIL e PHONE
       - status 200: subtrai 1
-      - status 404: subtrai 2
+      - status 404: subtrai 10
       - pagamento liquidado: adiciona 1
-    
-    - `ENTRIES_READ_PARTICIPANT_ANTISCAN`
-      - Aplicável somente para chaves do tipo EMAIL e PHONE
+
+    - `ENTRIES_READ_USER_ANTISCAN_V2`
+      - Aplicável somente para chaves do tipo CPF, CNPJ e EVP
       - status 200: subtrai 1
+      - status 404: subtrai 10
+      - pagamento liquidado: adiciona 1
+
+      (*) O tamanho do balde das políticas ENTRIES_READ_USER_ANTISCAN e ENTRIES_READ_USER_ANTISCAN_V2 é categorizado de acordo com o tipo de
+       usuário final realizando a consulta, Pessoa Física (PF) ou Pessoa Jurídica (PJ):
+      |  Categoria   |  Tamanho do balde |
+      |--------------|-------------------|
+      | PF           | 200               |
+      | PJ           | 2.000             |
+
+    - `ENTRIES_READ_USER_INITIATOR`
+      - Aplicável para todos os tipos de chaves (EMAIL, PHONE, CPF, CNPJ e EVP)
+      - status 200: subtrai 1
+      - status 404: subtrai 10
+
+    - `ENTRIES_READ_PARTICIPANT_ANTISCAN`
+      - Aplicável para todos os tipos de chaves (EMAIL, PHONE, CPF, CNPJ e EVP)
+      - status 200: subtrai 1
+      - status 404: subtrai 3
       - pagamento liquidado/rejeitado: adiciona 1
-    
+
+      (**) O tamanho do balde nesta política depende da categoria em que se enquadra do participante. As seguintes categorias são possíveis:
+      |  Categoria   | Taxa de reposição | Tamanho do balde |
+      |--------------|-------------------|------------------|
+      | A            | 8.000/min         | 20.000           |
+      | B            | 5.000/min         | 15.000           |
+      | C            | 2.000/min         | 8.000            |
+      | D            | 500/min           | 4.000            |
+      | E            | 50/min            | 3.000            |
+      | F            | 2/min             | 1.000            |
+
+    - `ENTRIES_READ_PARTICIPANT_INITIATOR`
+      - Aplicável para todos os tipos de chaves (EMAIL, PHONE, CPF, CNPJ e EVP)
+      - status 200: subtrai 1
+      - status 404: subtrai 3
+
     - `CLAIMS_LIST_WITH_ROLE`
       - Aplicável quando há filtragem por doador/reivindicador
       - status diferente de 500: subtrai 1
@@ -567,14 +604,14 @@ paths:
           $ref: "#/components/schemas/Key"
         name: Key
         in: path
-        required: true  
+        required: true
     get:
       summary: Consultar Vínculo
       tags:
         - Directory
       description: |-
         Obtém um vínculo contendo os detalhes de conta transacional associados a uma chave de endereçamento.
-        
+
         ### Dados anti-fraude
         A fim de permitir avaliação de risco de fraude, na consulta de vínculos são fornecidos contadores
         dos seguintes eventos:
@@ -584,7 +621,7 @@ paths:
         3. relatos de infrações com análise e concordância do creditado
 
         Os eventos são agregados por chave, titular (cpf ou cnpj) e conta transacional em 3 janelas temporais:
-        
+
         - últimos 3 dias (d3)
         - últimos 30 dias (d30) 
         - últimos 6 meses, sem contar o mês corrente (m6)
@@ -601,12 +638,13 @@ paths:
         A limitação funciona com base em cabeçalhos enviados na requisição. Os cabeçalhos de requisição são obrigatórios 
         para todos os tipos de chaves. Na resposta, para consultas sujeitas à política de limitação, são enviados 
         cabeçalhos que informam detalhes sobre o estado dos _buckets_ associados ao participante e ao usuário final.
-        
-        O parâmetro `PI-PayerId` é o identificador pseudonimizado do usuário final, vinculado a um participante. 
-        Requisições vindas de um mesmo usuário, para um mesmo participante, devem usar o mesmo identificador. 
-        Como sugestão de implementação, pode ser utilizado o valor hexadecimal da aplicação de 
-        [HMAC-SHA-256](https://tools.ietf.org/html/rfc4634#section-7) a um identificador do usuário, 
-        com chave de conhecimento restrito ao participante.
+
+        O parâmetro `PI-PayerId` é o identificador único do usuário final, vinculado a um participante.
+        Requisições vindas de um mesmo usuário, para um mesmo participante, devem usar o mesmo identificador.
+        A partir da versão `1.5.0` da API DICT, este parâmetro deverá ser preenchido com o CPF do usuário final
+        (11 dígitos), no caso de pessoa física, ou com o CNPJ (14 dígitos), no caso de pessoa jurídica.
+        O valor **não deve ser pseudonimizado**, pois a informação passará a ser considerada no rastreamento
+        de possíveis violações de limites.
 
         ### Cache
         Consultas a vínculos podem ter suas respostas _cacheadas_ no PSP, devendo seguir as 
@@ -620,7 +658,7 @@ paths:
         - schema:
             type: string
             pattern: '^[0-9]{8}$'
-            example: '12345678'            
+            example: '12345678'
           in: header
           name: PI-RequestingParticipant
           description: 'Identificador SPB do participante (direto ou indireto) que faz a requisição.'
@@ -641,34 +679,13 @@ paths:
       responses:
         '200':
           description: OK
-          headers:
-            PI-RateLimit-ClientRemaining:
-              description: Número de requisições disponíveis para que limite associado ao `PI-PayerId` seja atingido.
-              schema:
-                type: integer
-              example: 100
-            PI-RateLimit-ClientReset:
-              description: Segundos até que limite associado ao `PI-PayerId` seja renovado.
-              schema:
-                type: integer
-              example: 30
-            PI-RateLimit-ParticipantRemaining:
-              description: Número de requisições disponíveis para que limite associado ao `PI-RequestingParticipant` seja atingido.
-              schema:
-                type: integer
-              example: 100
-            PI-RateLimit-ParticipantReset:
-              description: Segundos até que limite associado ao `PI-RequestingParticipant` seja renovado.
-              schema:
-                type: integer
-              example: 30
           content:
-            application/xml:           
+            application/xml:
               schema:
-                $ref: '#/components/schemas/GetEntryResponse'                                
+                $ref: '#/components/schemas/GetEntryResponse'
               examples:
-                natural-person:
-                  value: 
+                example:
+                  value:
                     $ref: './examples/entries/GetEntryResponse.xml'
         '404':
           $ref: "#/components/responses/NotFound"
@@ -680,31 +697,36 @@ paths:
         - Directory
       description: |-
         Atualiza um vínculo. 
-        
+
         A ser utilizado no cenário de atualização da informação da conta, nome e nome fantasia de um cliente, permanecendo este no mesmo PSP.
         Somente podem ser atualizadas as informações de conta do vínculo, nome e nome fantasia do cliente. Outras atualizações do vínculo
         devem ser feitas por exclusão/inclusão do vínculo, portabilidade ou reivindicação de posse, a depender da situação.
-        
+
+        ### Restrições
+        As seguintes restrições devem ser obedecidas na atualização de vínculo, de acordo com o tipo de chave:
+          - Chaves `EVP` (aleatórias) - É permitida a alteração, porém, apenas com os motivos `BRANCH_TRANSFER` ou `RECONCILIATION`.
+          - Demais chaves - É permitida a alteração com os motivos `USER_REQUESTED`, `BRANCH_TRANSFER` ou `RECONCILIATION`.
+
       operationId: updateEntry
       requestBody:
-        content: 
+        content:
           application/xml:
             schema:
               $ref: '#/components/schemas/UpdateEntryRequest'
             examples:
-                example:
-                  value: 
-                    $ref: './examples/entries/UpdateEntryRequest.xml'
+              example:
+                value:
+                  $ref: './examples/entries/UpdateEntryRequest.xml'
       responses:
         '200':
           description: OK
           content:
-            application/xml:           
+            application/xml:
               schema:
-                $ref: '#/components/schemas/UpdateEntryResponse'                                
+                $ref: '#/components/schemas/UpdateEntryResponse'
               examples:
                 example:
-                  value: 
+                  value:
                     $ref: './examples/entries/UpdateEntryResponse.xml'
         '403':
           $ref: "#/components/responses/Forbidden"
@@ -714,7 +736,69 @@ paths:
           $ref: "#/components/responses/NotFound"
         '503':
           $ref: "#/components/responses/ServiceUnavailable"
-  
+
+  '/entries/{Key}/initiator':
+    parameters:
+      - schema:
+          $ref: "#/components/schemas/Key"
+        name: Key
+        in: path
+        required: true
+    get:
+      summary: Consultar Vínculo(PSP iniciador)
+      tags:
+        - Directory
+      description: |-
+        Somente para PSPs iniciadores.
+
+        Obtém um vínculo contendo os detalhes de conta transacional associados a uma chave de endereçamento.
+
+        ### Dados anti-fraude
+        Aplica-se as mesmas regras da seção "Dados anti-fraude" de [consultar vínculo](#operation/getEntry).
+
+        ### Limitação de requisições
+        Assim como na consulta geral de chaves descrita na seção [consultar vínculo](#operation/getEntry), a consulta a chaves
+        do tipo EMAIL e PHONE para PSP's iniciadores também está sujeita à política de limitação (_rate-limiting_) de requisições.
+        A limitação funciona com base em cabeçalhos enviados na requisição, obrigatórios para todos os tipos de chaves, porém,
+        diferentemente das políticas anti scan aplicadas à consulta geral de chaves, as "fichas" **não são** repostas nos "baldes"
+        quando as transações são liquidadas. Os baldes possuem apenas a reposição periódica, como descrito na seção [segurança](#section/Seguranca).
+
+        ### Cache
+        Aplica-se as mesmas recomendações da seção "Cache" de [consultar vínculo](#operation/getEntry).
+
+      operationId: getEntryInitiator
+      parameters:
+        - schema:
+            type: string
+            pattern: '^[0-9]{8}$'
+            example: '12345678'
+          in: header
+          name: PI-RequestingParticipant
+          description: 'Identificador SPB do participante (direto ou indireto) que faz a requisição.'
+          required: true
+        - schema:
+            type: string
+            pattern: '[0-9a-fA-F]{64}'
+          in: header
+          name: PI-PayerId
+          description: 'Identificador pseudonimizado do pagador que originou a requisição. Usado para _rate-limiting_.'
+          required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/GetEntryResponse'
+              examples:
+                example:
+                  value:
+                    $ref: './examples/entries/GetEntryResponseInitiator.xml'
+        '404':
+          $ref: "#/components/responses/NotFound"
+        '429':
+          $ref: "#/components/responses/RateLimited"
+
   '/entries/{Key}/delete':
     parameters:
       - schema:
@@ -862,6 +946,7 @@ paths:
         - description: Inclui adicionalmente as reivindicações de participantes indiretos
           schema:
             type: boolean
+            default: false
           name: IncludeIndirectParticipants
           in: query
           required: false
@@ -920,13 +1005,6 @@ paths:
 #          name: Offset
 #          in: query
 #          required: false
-        - description: Indica inclusão de reivindicações de participantes indiretos no resultado da consulta.
-          schema:
-            type: boolean
-            default: false
-          name: IncludeIndirectParticipants
-          in: query
-          required: false
       summary: Listar Reivindicações
       description: |- 
           Obtém uma lista de reivindicações, ordenada de forma crescente pelo campo `LastModified`, de acordo com os filtros passados.
@@ -1565,6 +1643,13 @@ paths:
           name: Participant
           in: query
           required: true
+        - description: Inclui adicionalmente os relatos de infração de participantes indiretos
+          schema:
+            type: boolean
+            default: false
+          name: IncludeIndirectParticipants
+          in: query
+          required: false
         - description: Restringe a relatos em que o participante é o debitado
           schema:
             type: boolean
@@ -1872,6 +1957,13 @@ paths:
           name: Participant
           in: query
           required: true
+        - description: Inclui adicionalmente as devoluções de participantes indiretos
+          schema:
+            type: boolean
+            default: false
+          name: IncludeIndirectParticipants
+          in: query
+          required: false
         - description: Papel do participante na devolução
           schema:
             $ref: "#/components/schemas/RefundRequestRole"
