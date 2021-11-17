@@ -34,6 +34,9 @@
             <Counter type="CONFIRMED_FRAUDS" by="KEY" d3="0" d30="5" m6="30"/>
             <Counter type="CONFIRMED_FRAUDS" by="OWNER" d3="0" d30="5" m6="30"/>
             <Counter type="CONFIRMED_FRAUDS" by="ACCOUNT" d3="0" d30="5" m6="30"/>
+            <Counter type="REJECTED" by="KEY" d3="0" d30="5" m6="30"/>
+            <Counter type="REJECTED" by="OWNER" d3="0" d30="5" m6="30"/>
+            <Counter type="REJECTED" by="ACCOUNT" d3="0" d30="5" m6="30"/>
         </Counters>
     </Statistics>
 </GetEntryResponse>

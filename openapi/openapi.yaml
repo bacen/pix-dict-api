@@ -1,7 +1,7 @@
 openapi: 3.0.0
 info:
   title: DICT API
-  version: '1.6.1'
+  version: '1.7.1'
   license:
     name: Apache 2.0
     url: http://www.apache.org/licenses/LICENSE-2.0
@@ -75,6 +75,7 @@ info:
     | KEYS_READ                            | PSP      | checkKeys                                                                                            | 70/min            |  70              |
     | REFUNDS_READ                         | PSP      | getRefund                                                                                            | 1200/min          |  36000           |
     | REFUNDS_WRITE                        | PSP      | createRefund, cancelRefund, closeRefund                                                              | 2400/min          |  72000           |
+    | STATISTICS_READ                      | PSP      | getOwnerStatistics                                                                                   | 100/min           |  100             |
 
 
     ### Regras de contagem das políticas
@@ -543,7 +544,13 @@ tags:
       -	analisada: a solicitação de devolução foi analisada pelo PSP do usuário recebedor e o resultado dessa análise está disponível; ou
       -	cancelada: enquanto a solicitação não estiver no estado “analisada”, o PSP do pagador pode cancelar a solicitação.
 
-
+  - name: Statistics
+    x-displayName: Estatísticas
+    description: |-
+      O DICT fornece dados estatísticos de usuários finais, que podem ser consultados através do `TaxIdNumber` (CPF ou CNPJ). As informações
+      providas detalham o total de liquidações, fraudes reportadas e fraudes confirmadas do respectivo usuário consultado.
+      Assim como nos dados estatísticos de chaves, esses totais são consolidados para os últimos 3 dias, 30 dias e 6 meses anteriores ao
+      momento da consulta.
 
 paths:
 ########################################################################################################################
@@ -665,10 +672,10 @@ paths:
           required: true
         - schema:
             type: string
-            pattern: '[0-9a-fA-F]{64}'
+            pattern: '^([0-9]{11}|[0-9]{14})$'
           in: header
           name: PI-PayerId
-          description: 'Identificador pseudonimizado do pagador que originou a requisição. Usado para _rate-limiting_.'
+          description: 'Identificador do pagador que originou a requisição. Usado para _rate-limiting_.'
           required: true
         - schema:
             type: string
@@ -778,10 +785,10 @@ paths:
           required: true
         - schema:
             type: string
-            pattern: '[0-9a-fA-F]{64}'
+            pattern: '^([0-9]{11}|[0-9]{14})$'
           in: header
           name: PI-PayerId
-          description: 'Identificador pseudonimizado do pagador que originou a requisição. Usado para _rate-limiting_.'
+          description: 'Identificador do pagador que originou a requisição. Usado para _rate-limiting_.'
           required: true
       responses:
         '200':
@@ -1614,9 +1621,24 @@ paths:
             schema:
               $ref: '#/components/schemas/CreateInfractionReportRequest'
             examples:        
-                example:
+                SPI - Settled:
                   value:
-                    $ref: './examples/infractions/CreateInfractionReportRequest.xml'
+                    $ref: './examples/infractions/CreateInfractionReportRequest-SPISettled.xml'
+                SPI - Rejected Payee:
+                  value:
+                    $ref: './examples/infractions/CreateInfractionReportRequest-SPIRejectedPayee.xml'
+                SPI - Rejected Payer:
+                  value:
+                    $ref: './examples/infractions/CreateInfractionReportRequest-SPIRejectedPayer.xml'
+                INTERNAL - Settled:
+                  value:
+                    $ref: './examples/infractions/CreateInfractionReportRequest-INTERNALSettled.xml'
+                INTERNAL - Rejected Payee:
+                  value:
+                    $ref: './examples/infractions/CreateInfractionReportRequest-INTERNALRejectedPayee.xml'
+                INTERNAL - Rejected Payer:
+                  value:
+                    $ref: './examples/infractions/CreateInfractionReportRequest-INTERNALRejectedPayer.xml'
       responses:
         '201':
           description: Created
@@ -1625,9 +1647,24 @@ paths:
               schema:
                 $ref: '#/components/schemas/CreateInfractionReportResponse'
               examples:
-                example:
-                  value: 
-                    $ref: './examples/infractions/CreateInfractionReportResponse.xml'
+                SPI - Settled:
+                  value:
+                    $ref: './examples/infractions/CreateInfractionReportResponse-SPISettled.xml'
+                SPI - Rejected Payee:
+                  value:
+                    $ref: './examples/infractions/CreateInfractionReportResponse-SPIRejectedPayee.xml'
+                SPI - Rejected Payer:
+                  value:
+                    $ref: './examples/infractions/CreateInfractionReportResponse-SPIRejectedPayer.xml'
+                INTERNAL - Settled:
+                  value:
+                    $ref: './examples/infractions/CreateInfractionReportResponse-INTERNALSettled.xml'
+                INTERNAL - Rejected Payee:
+                  value:
+                    $ref: './examples/infractions/CreateInfractionReportResponse-INTERNALRejectedPayee.xml'
+                INTERNAL - Rejected Payer:
+                  value:
+                    $ref: './examples/infractions/CreateInfractionReportResponse-INTERNALRejectedPayer.xml'
         '400':
           $ref: "#/components/responses/BadRequest"
         '403': 
@@ -2163,6 +2200,49 @@ paths:
           $ref: "#/components/responses/NotFound"
         '503':
           $ref: "#/components/responses/ServiceUnavailable"
+
+  #######################################################################################################################
+  ## STATISTICS
+  #######################################################################################################################
+  '/statistics/owner/{TaxIdNumber}':
+    parameters:
+      - schema:
+            type: string
+            pattern: '^[0-9]{11,14}$'
+            example: '12345678901'   
+        name: TaxIdNumber
+        in: path
+        required: true
+    get:
+      summary: Consultar Estatísticas de usuário final
+      description: Obtém dados estatísticos de perfil de uso do usuário (liquidações, fraudes reportadas e fraudes confirmadas)
+      operationId: getOwnerStatistics
+      parameters:
+        - schema:
+            type: string
+            pattern: '^[0-9]{8}$'
+            example: '12345678'
+          in: header
+          name: PI-RequestingParticipant
+          description: 'Identificador SPB do participante (direto ou indireto) que faz a requisição.'
+          required: true
+      tags:
+        - Statistics
+      responses:
+        '200':
+          description: OK
+          content:
+            application/xml:           
+              schema:
+                $ref: '#/components/schemas/GetOwnerStatisticsResponse'
+              examples:
+                example:
+                  value: 
+                    $ref: './examples/statistics/GetOwnerStatisticsResponse.xml'
+        '403': 
+          $ref: "#/components/responses/Forbidden"
+        '404':
+          $ref: "#/components/responses/NotFound"
 
 components:
   schemas:

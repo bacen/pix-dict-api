@@ -124,7 +124,6 @@ EntryOperationReason:
     - USER_REQUESTED
     - ACCOUNT_CLOSURE
     - BRANCH_TRANSFER
-    - ENTRY_INACTIVITY
     - RECONCILIATION
     - FRAUD
 ClaimStatus:
@@ -358,6 +357,7 @@ Counter:
         - SETTLEMENTS
         - REPORTED_FRAUDS
         - CONFIRMED_FRAUDS
+        - REJECTED
     by:
       type: string
       description: Agregador (chave, dono ou conta).
@@ -367,6 +367,35 @@ Counter:
         - KEY
         - OWNER
         - ACCOUNT
+    d3:
+      description: Valor para os últimos 3 dias
+      type: integer
+      xml:
+        attribute: true
+    d30:
+      description: Valor para os últimos 30 dias
+      type: integer
+      xml:
+        attribute: true
+    m6:
+      description: Valor para os últimos 6 meses (sem contar o mês corrente)
+      type: integer
+      xml:
+        attribute: true
+ByCounter:
+  type: object
+  description: Contador de eventos agregados por tipo em diversas janelas temporais.
+  properties:
+    type:
+      type: string
+      description: Tipo do contador.
+      xml:
+        attribute: true
+      enum:
+        - SETTLEMENTS
+        - REPORTED_FRAUDS
+        - CONFIRMED_FRAUDS
+        - REJECTED
     d3:
       description: Valor para os últimos 3 dias
       type: integer
@@ -432,15 +461,86 @@ InfractionReport:
       type: string
       description: Transação com suspeita de infração
       example: 'E9999901012341234123412345678900'
-      pattern: '\w{32}'
+      pattern: '\w{8,32}'
+    TransactionType:
+      $ref: '#/TransactionType'
+    TransactionResult:
+      $ref: '#/TransactionResult'
     InfractionType:
       $ref: '#/InfractionType'
     ReportDetails:
       description: Detalhes que possam ajudar o participante recebedor a analisar a suspeita de infração
       maxLength: 2000
+    InfractionData:
+      $ref: '#/InfractionData'
   required:
     - TransactionId
     - InfractionType
+TransactionType:
+  type: string
+  default: SPI
+  enum:
+    - SPI
+    - INTERNAL
+TransactionResult:
+  type: string
+  default: SETTLED
+  enum:
+    - SETTLED
+    - REJECTED_PAYEE
+    - REJECTED_PAYER
+InfractionData:
+  type: object
+  description: Dados de uma transação envolvida em uma infração
+  properties:
+    TaxIdNumber:
+      $ref: '#/TaxIdNumber'
+    Key:
+      $ref: "#/Key"
+    DebitedParticipant:
+      allOf:
+        - $ref: '#/ISPB'
+        - description: Identificador SPB do participante do usuário pagador da transação
+    CreditedParticipant:
+      allOf:
+        - $ref: '#/ISPB'
+        - description: Identificador SPB do participante do usuário recebedor da transação
+    ReportedBy:
+      $ref: '#/ReportedBy'
+    TransactionDate:
+      type: string
+      format: date-time
+      description: Data-hora da realização da transação
+    InfractingAccountData:
+      $ref: "#/InfractingAccountData"
+  required:
+    - TaxIdNumber
+    - DebitedParticipant
+    - CreditedParticipant
+    - ReportedBy
+    - TransactionDate
+    - InfractingAccountData
+InfractingAccountData:
+  type: object
+  description: Dados parciais de uma conta transacional envolvida em uma infração
+  properties:
+    Branch:
+      type: string
+      description: Agência, sem dígito verificador.
+      pattern: '^[0-9]{1,4}$'
+      example: '0001'
+    AccountNumber:
+      type: string
+      description: 'Número de conta, incluindo verificador. Se verificador for letra, substituir por 0.'
+      pattern: '^[0-9]{1,20}$'
+      example: '0007654321'
+  required:
+    - AccountNumber
+TaxIdNumber:
+  type: string
+  description: CPF ou CNPJ
+  pattern: '([0-9]{11}|[0-9]{14})'
+  example: '12345678901'
 ExtendedInfractionReport:
   allOf:
     - $ref: '#/InfractionReport'
@@ -573,7 +673,7 @@ RefundAnalysisResult:
   description: Resultado da análise da requisição de devolução pelo constestado.
   enum:
     - TOTALLY_ACCEPTED
-    - PARCIALlY_ACCEPTED
+    - PARTIALLY_ACCEPTED
     - REJECTED
 RefundAnalysisDetails:
   description: Detalhes da análise da requisição de devolução indicando a motivação do resultado.
@@ -591,6 +691,7 @@ RefundRejectionReason:
     - NO_BALANCE
     - ACCOUNT_CLOSURE
     - CANNOT_REFUND
+    - OTHER
   description: Razão da rejeição da solicitação de devolução.
 #### SYNC REQ-RESP #####
 
@@ -1096,7 +1197,7 @@ DeleteEntryRequest:
     Reason:
       allOf:
         - $ref: '#/EntryOperationReason'
-        - description: "Valores válidos: `USER_REQUESTED`, `ACCOUNT_CLOSURE`, `ENTRY_INACTIVITY`, `RECONCILIATION` e `FRAUD`"
+        - description: "Valores válidos: `USER_REQUESTED`, `ACCOUNT_CLOSURE`, `RECONCILIATION` e `FRAUD`"
   required:
     - Key
     - Participant
@@ -1546,6 +1647,44 @@ CloseRefundResponse:
     - ResponseTime
     - CorrelationId
     - Refund
+
+
+##### STATISTICS REQ-RESP ####
+
+GetOwnerStatisticsResponse:
+  type: object
+  properties:
+    Signature:
+      type: object
+      xml:
+        prefix: ds
+        namespace: 'http://www.w3.org/2000/09/xmldsig#'
+    ResponseTime:
+      type: string
+      format: date-time
+    CorrelationId:
+      $ref: '#/CorrelationId'
+    OwnerStatistics:
+      $ref: '#/OwnerStatistics'
+  required:
+    - ResponseTime
+    - CorrelationId
+    - OwnerStatistics
+OwnerStatistics:
+  type: object
+  description: Dados de estatísticos relacionados ao usuário
+  properties:
+    TaxIdNumber:
+      $ref: '#/TaxIdNumber'
+    LastUpdated:
+      type: string
+      format: date-time
+      description: data-hora da última atualização dos dados antifraude
+    Counters:
+      type: array
+      description: Contadores de eventos de algum tipo
+      items:
+        $ref: '#/ByCounter'
 
 #################  
 

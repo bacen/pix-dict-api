@@ -11,6 +11,7 @@
             <Counter type="SETTLEMENTS" d3="0" d30="20" m6="60"/>
             <Counter type="REPORTED_FRAUDS" d3="0" d30="10" m6="40"/>
             <Counter type="CONFIRMED_FRAUDS" d3="0" d30="5" m6="30"/>
+            <Counter type="REJECTED" d3="0" d30="5" m6="30"/>
         </Counters>
     </OwnerStatistics>
 </GetOwnerStatisticsResponse>

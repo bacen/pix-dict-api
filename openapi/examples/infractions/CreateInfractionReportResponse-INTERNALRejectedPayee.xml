@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CreateInfractionReportResponse>
+    <Signature></Signature>
+    <ResponseTime>2020-11-10T10:00:00Z</ResponseTime>
+    <CorrelationId>a9f13566e19f5ca51329479a5bae60c5</CorrelationId>
+    <InfractionReport>
+        <TransactionId>12345679XPTO1234</TransactionId>
+        <TransactionType>INTERNAL</TransactionType>
+        <TransactionResult>REJECTED_PAYEE</TransactionResult>
+        <InfractionData>
+            <TaxIdNumber>11122233300</TaxIdNumber>
+            <Key>+5561988880000</Key>
+            <DebitedParticipant>99999010</DebitedParticipant>
+            <CreditedParticipant>99999003</CreditedParticipant>
+            <ReportedBy>DEBITED_PARTICIPANT</ReportedBy>
+            <TransactionDate>2021-10-10T10:00:00Z</TransactionDate>
+            <InfractingAccountData>
+                <Branch>0001</Branch>
+                <AccountNumber>0007654321</AccountNumber>
+            </InfractingAccountData>
+        </InfractionData>
+        <InfractionType>FRAUD</InfractionType>
+        <ReportDetails>Tentativa de transação feita através de QR Code falso em boleto</ReportDetails>
+        <Id>91d65e98-97c0-4b0f-b577-73625da1f9fc</Id>
+        <Status>OPEN</Status>
+        <DebitedParticipant>99999010</DebitedParticipant>
+        <CreditedParticipant>99999003</CreditedParticipant>
+        <ReportedBy>DEBITED_PARTICIPANT</ReportedBy>
+        <CreationTime>2021-11-10T10:00:00Z</CreationTime>
+        <LastModified>2021-11-10T10:00:00Z</LastModified>
+    </InfractionReport>
+</CreateInfractionReportResponse>

@@ -2,7 +2,26 @@
 
 Mudanças relevantes na API do DICT serão documentadas aqui.
 
-## [1.6.1] - 2021-10-26
+## [1.7.1] - 2021-11-16
+### Adicionado
+- Novo tipo de contador em estatísticas para transações rejeitadas: REJECTED
+- Política para controle de limites de acesso no endpoint de estatísticas: STATISTICS_READ
+
+### Alterado
+- Correções pontuais de nomenclatura
+
+### Removido
+- Eliminação do motivo ENTRY_INACTIVITY para operações de deleção de chaves
+
+## [1.7.0] - 2021-10-29
+### Adicionado
+- Novo fluxo de reporte de infração
+- Consulta de estatísticas por CPF/CNPJ
+
+### Alterado
+- Novo formato do PayerID
+
+## [1.6.1] - 2021-10-13
 ### Adicionado
 - Campo refundAmount no XML de exemplo de listagem de devoluções
 - Campo InfractionReportId em devoluções

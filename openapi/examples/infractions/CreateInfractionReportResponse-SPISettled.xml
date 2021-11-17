@@ -9,7 +9,7 @@
         <ReportedBy>DEBITED_PARTICIPANT</ReportedBy>
         <ReportDetails>Transação feita através de QR Code falso em boleto</ReportDetails>
         <Id>91d65e98-97c0-4b0f-b577-73625da1f9fc</Id>
-        <Status>CLOSED</Status>
+        <Status>OPEN</Status>
         <DebitedParticipant>99999010</DebitedParticipant>
         <CreditedParticipant>99999011</CreditedParticipant>
         <CreationTime>2020-01-17T10:00:00Z</CreationTime>
