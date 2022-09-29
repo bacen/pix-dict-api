@@ -1,7 +1,7 @@
 openapi: 3.0.0
 info:
   title: DICT API
-  version: '1.7.1'
+  version: '1.8.0'
   license:
     name: Apache 2.0
     url: http://www.apache.org/licenses/LICENSE-2.0
@@ -9,40 +9,40 @@ info:
     name: Suporte TI BCB
     email: suporte.ti@bcb.gov.br
     url: https://www.bcb.gov.br/estabilidadefinanceira/pagamentosinstantaneos
-  description: |- 
+  description: |-
     O Diretório de Identificadores de Contas Transacionais - DICT - é o serviço do arranjo Pix que permite
     buscar detalhes de contas transacionais com chaves de endereçamento mais convenientes para quem faz
     um pagamento. Entre os tipos de chave atualmente disponíveis estão CPF, CNPJ, telefone, e-mail e EVP.
-    As informações retornadas pelo DICT permitem ao pagador confirmar a identidade do recebedor, proporcionando 
-    uma experiência mais fácil e segura. Permitem também ao PSP do pagador criar a mensagem de instrução de 
+    As informações retornadas pelo DICT permitem ao pagador confirmar a identidade do recebedor, proporcionando
+    uma experiência mais fácil e segura. Permitem também ao PSP do pagador criar a mensagem de instrução de
     pagamento a ser enviada para o sistema de liquidação com os detalhes de conta do recebedor.
 
     Para informações adicionais, consulte a [página do Pix](https://www.bcb.gov.br/estabilidadefinanceira/pagamentosinstantaneos).
 
     # Segurança
-    ## Autenticação 
+    ## Autenticação
     O DICT utiliza autenticação mútua TLS.
 
     As definições de autenticação para essa API estão especificadas no
-    [manual de segurança do Pix](https://www.bcb.gov.br/content/estabilidadefinanceira/cedsfn/Manual%20de%20Seguranca%20do%20PIX%20v3.1.pdf).
-   
-    ## Assinatura digital
-    Requisições que incluam ou alterem informações no DICT devem ser assinadas com 
-    [XML Digital Signature](https://www.w3.org/2000/09/xmldsig) pelo participante que envia a requisição.
-    Requisições de consulta não precisam ser assinadas. Respostas retornadas pelo DICT serão assinadas digitalmente. 
-    As assinaturas **devem** ser validadas pelos clientes da API. 
+    [manual de segurança do Pix](https://www.bcb.gov.br/content/estabilidadefinanceira/cedsfn/Manual%20de%20Seguranca%20do%20PIX%20v3.4.pdf).
 
-    A assinatura será colocada no elemento `Signature` das requisições e respostas. 
-    O `Signature` será [envelopado](https://www.w3.org/TR/xmldsig-core1/#def-SignatureEnveloped) pelo XML que está 
+    ## Assinatura digital
+    Requisições que incluam ou alterem informações no DICT devem ser assinadas com
+    [XML Digital Signature](https://www.w3.org/2000/09/xmldsig) pelo participante que envia a requisição.
+    Requisições de consulta não precisam ser assinadas. Respostas retornadas pelo DICT serão assinadas digitalmente.
+    As assinaturas **devem** ser validadas pelos clientes da API.
+
+    A assinatura será colocada no elemento `Signature` das requisições e respostas.
+    O `Signature` será [envelopado](https://www.w3.org/TR/xmldsig-core1/#def-SignatureEnveloped) pelo XML que está
     sendo assinado (assinatura é um elemento filho).
 
     Para mais detalhes sobre a forma de construir a assinatura, consulte o
-    [manual de segurança do Pix](https://www.bcb.gov.br/content/estabilidadefinanceira/cedsfn/Manual%20de%20Seguranca%20do%20PIX%20v3.1.pdf).
+    [manual de segurança do Pix](https://www.bcb.gov.br/content/estabilidadefinanceira/cedsfn/Manual%20de%20Seguranca%20do%20PIX%20v3.4.pdf).
 
     ## Limitação de requisições
-    
+
     Para preservar a estabilidade do serviço, as operações da API do DICT estão sujeitas a políticas de
-    limitação de requisições. Especificamente para a operação de consulta de vínculo, há também 
+    limitação de requisições. Especificamente para a operação de consulta de vínculo, há também
     limitação de requisições com a finalidade de prevenir ataques de varredura de dados. O algoritmo
     usado para implementar as políticas de limitação é o [token bucket](https://en.wikipedia.org/wiki/Token_bucket).
 
@@ -55,8 +55,6 @@ info:
     | ENTRIES_READ_USER_ANTISCAN           | USER     | getEntry                                                                                             | 2/min             |  (*)             |
     | ENTRIES_READ_USER_ANTISCAN_V2        | USER     | getEntry                                                                                             | 2/min             |  (*)             |
     | ENTRIES_READ_PARTICIPANT_ANTISCAN    | PSP      | getEntry                                                                                             | (**)              |  (**)            |
-    | ENTRIES_READ_PARTICIPANT_INITIATOR   | PSP      | getEntry                                                                                             | 400/min           |  5000            |
-    | ENTRIES_READ_USER_INITIATOR          | USER     | getEntry                                                                                             | 2/min             |  100             |
     | ENTRIES_WRITE                        | PSP      | createEntry, deleteEntry                                                                             | 1200/min          |  36000           |
     | ENTRIES_UPDATE                       | PSP      | updateEntry                                                                                          | 600/min           |  600             |
     | CLAIMS_READ                          | PSP      | getClaim                                                                                             | 600/min           |  18000           |
@@ -66,16 +64,20 @@ info:
     | SYNC_VERIFICATIONS_WRITE             | PSP      | createSyncVerification                                                                               | 10/min            |  50              |
     | CIDS_FILES_WRITE                     | PSP      | createCidSetFile                                                                                     | 40/dia            |  200             |
     | CIDS_FILES_READ                      | PSP      | getCidSetFile                                                                                        | 10/min            |  50              |
-    | CIDS_EVENTS_LIST                     | PSP      | listCidSetEvents                                                                                     | 40/min            |  200             |
+    | CIDS_EVENTS_LIST                     | PSP      | listCidSetEvents                                                                                     | 20/min            |  100             |
     | CIDS_ENTRIES_READ                    | PSP      | getEntryByCid                                                                                        | 1200/min          |  36000           |
     | INFRACTION_REPORTS_READ              | PSP      | getInfractionReport                                                                                  | 600/min           |  18000           |
     | INFRACTION_REPORTS_WRITE             | PSP      | createInfractionReport, acknowledgeInfractionReport, cancelInfractionReport, closeInfractionReport   | 1200/min          |  36000           |
     | INFRACTION_REPORTS_LIST_WITH_ROLE    | PSP      | listInfractionReports                                                                                | 40/min            |  200             |
     | INFRACTION_REPORTS_LIST_WITHOUT_ROLE | PSP      | listInfractionReports                                                                                | 10/min            |  50              |
-    | KEYS_READ                            | PSP      | checkKeys                                                                                            | 70/min            |  70              |
+    | KEYS_CHECK                           | PSP      | checkKeys                                                                                            | 70/min            |  70              |
     | REFUNDS_READ                         | PSP      | getRefund                                                                                            | 1200/min          |  36000           |
     | REFUNDS_WRITE                        | PSP      | createRefund, cancelRefund, closeRefund                                                              | 2400/min          |  72000           |
-    | STATISTICS_READ                      | PSP      | getOwnerStatistics                                                                                   | 100/min           |  100             |
+    | REFUND_LIST_WITH_ROLE                | PSP      | listRefunds                                                                                          | 40/min            |  200             |
+    | REFUND_LIST_WITHOUT_ROLE             | PSP      | listRefunds                                                                                          | 10/min            |  50              |
+    | STATISTICS_READ                      | PSP      | getOwnerStatistics                                                                                   | 500/min           |  500             |
+    | POLICIES_READ                        | PSP      | getBucketState                                                                                       | 60/min            |  200             |
+    | POLICIES_LIST                        | PSP      | listBucketStates                                                                                     | 6/min             |  20              |
 
 
     ### Regras de contagem das políticas
@@ -83,47 +85,37 @@ info:
     - `ENTRIES_READ_USER_ANTISCAN`
       - Aplicável somente para chaves do tipo EMAIL e PHONE
       - status 200: subtrai 1
-      - status 404: subtrai 10
-      - pagamento liquidado: adiciona 1
+      - status 404: subtrai 20
+      - ordem de pagamento enviada: adiciona 1
 
     - `ENTRIES_READ_USER_ANTISCAN_V2`
       - Aplicável somente para chaves do tipo CPF, CNPJ e EVP
       - status 200: subtrai 1
-      - status 404: subtrai 10
-      - pagamento liquidado: adiciona 1
+      - status 404: subtrai 20
+      - ordem de pagamento enviada: adiciona 1
 
       (*) O tamanho do balde das políticas ENTRIES_READ_USER_ANTISCAN e ENTRIES_READ_USER_ANTISCAN_V2 é categorizado de acordo com o tipo de
        usuário final realizando a consulta, Pessoa Física (PF) ou Pessoa Jurídica (PJ):
       |  Categoria   |  Tamanho do balde |
       |--------------|-------------------|
-      | PF           | 200               |
-      | PJ           | 2.000             |
-
-    - `ENTRIES_READ_USER_INITIATOR`
-      - Aplicável para todos os tipos de chaves (EMAIL, PHONE, CPF, CNPJ e EVP)
-      - status 200: subtrai 1
-      - status 404: subtrai 10
+      | PF           | 100               |
+      | PJ           | 1.000             |
 
     - `ENTRIES_READ_PARTICIPANT_ANTISCAN`
       - Aplicável para todos os tipos de chaves (EMAIL, PHONE, CPF, CNPJ e EVP)
       - status 200: subtrai 1
       - status 404: subtrai 3
-      - pagamento liquidado/rejeitado: adiciona 1
+      - ordem de pagamento enviada: adiciona 1
 
       (**) O tamanho do balde nesta política depende da categoria em que se enquadra do participante. As seguintes categorias são possíveis:
       |  Categoria   | Taxa de reposição | Tamanho do balde |
       |--------------|-------------------|------------------|
-      | A            | 8.000/min         | 20.000           |
-      | B            | 5.000/min         | 15.000           |
+      | A            | 12.000/min        | 20.000           |
+      | B            | 8.000/min         | 15.000           |
       | C            | 2.000/min         | 8.000            |
       | D            | 500/min           | 4.000            |
       | E            | 50/min            | 3.000            |
       | F            | 2/min             | 1.000            |
-
-    - `ENTRIES_READ_PARTICIPANT_INITIATOR`
-      - Aplicável para todos os tipos de chaves (EMAIL, PHONE, CPF, CNPJ e EVP)
-      - status 200: subtrai 1
-      - status 404: subtrai 3
 
     - `CLAIMS_LIST_WITH_ROLE`
       - Aplicável quando há filtragem por doador/reivindicador
@@ -133,12 +125,20 @@ info:
       - Aplicável quando não há filtragem por doador/reivindicador
       - status diferente de 500: subtrai 1
 
+    - `REFUND_LIST_WITH_ROLE`
+      - Aplicável quando há filtragem por requisitante/contestado
+      - status diferente de 500: subtrai 1
+
+    - `REFUND_LIST_WITHOUT_ROLE`
+      - Aplicável quando não há filtragem por requisitante/contestado
+      - status diferente de 500: subtrai 1
+
     - Demais políticas
       - status diferente de 500: subtrai 1
 
     ### Violação de limites
 
-    Caso o limite de uma política seja excedido, o que acontece quando a quantidade de fichas chega 
+    Caso o limite de uma política seja excedido, o que acontece quando a quantidade de fichas chega
     a zero, será retornada uma resposta de erro com status `429`.
 
     # Recomendações de desempenho
@@ -168,7 +168,7 @@ info:
 
     A versão que consta no _path_ da URL é o elemento _major_ da versão da API.
 
-    A evolução da versão se dá seguinte forma: 
+    A evolução da versão se dá seguinte forma:
 
     - *Major*: alterações incompatíveis, com quebra de contrato (v1.0.0 → v2.0.0)
     - *Minor*: alterações compatíveis, sem quebra de contrato (v1.1.0 → v1.2.0)
@@ -177,20 +177,20 @@ info:
 
     Não serão feitas mais que uma evolução _major_ em um período de 6 meses, ressalvado motivo de força maior.
     Quando houver uma evolução _major_, a versão anterior ficará disponível por no mínimo 1 mês.
-    
-    Alterações sem quebra de contrato e esclarecimentos às especificações podem ocorrer a qualquer momento. 
+
+    Alterações sem quebra de contrato e esclarecimentos às especificações podem ocorrer a qualquer momento.
     Clientes devem estar preparados para lidar com essas mudanças sem quebrar.
 
     # Tratamento de erros
 
-    O DICT retorna códigos de status HTTP para indicar sucesso ou falhas das requisições. 
-    Códigos 2xx indicam sucesso. Códigos 4xx indicam falhas causadas pelas informações 
-    enviadas pelo cliente ou pelo estado atual das entidades. Códigos 5xx indicam problemas 
+    O DICT retorna códigos de status HTTP para indicar sucesso ou falhas das requisições.
+    Códigos 2xx indicam sucesso. Códigos 4xx indicam falhas causadas pelas informações
+    enviadas pelo cliente ou pelo estado atual das entidades. Códigos 5xx indicam problemas
     no serviço no lado do DICT.
 
-    As respostas de erro incluem no corpo detalhes do erro seguindo o schema da RFC 
-    [Problem Details for HTTP APIs](https://tools.ietf.org/html/rfc7807).    
-    O campo `type` identifica o tipo de erro e no DICT segue o padrão: 
+    As respostas de erro incluem no corpo detalhes do erro seguindo o schema da RFC
+    [Problem Details for HTTP APIs](https://tools.ietf.org/html/rfc7807).
+    O campo `type` identifica o tipo de erro e no DICT segue o padrão:
     `https://dict.pi.rsfn.net.br/api/v1/error/<TipoErro>`
 
     Abaixo estão listados os tipos de erro do DICT.
@@ -199,7 +199,7 @@ info:
     **Gerais**
 
     - `Forbidden`
-      - Requisição de participante autenticado que viola alguma regra de autorização. 
+      - Requisição de participante autenticado que viola alguma regra de autorização.
         Ver [rfc7231](https://tools.ietf.org/html/rfc7231#section-6.5.3).
 
     - `BadRequest`
@@ -207,11 +207,11 @@ info:
         Ver [rfc7231](https://tools.ietf.org/html/rfc7231#section-6.5.1)
 
     - `NotFound`
-      - Entidade não encontrada. 
+      - Entidade não encontrada.
         Ver [rfc7231](https://tools.ietf.org/html/rfc7231#section-6.5.4)
 
     - `RateLimited`
-      - Limite de requisições foi atingido. 
+      - Limite de requisições foi atingido.
         Ver seção sobre [limitação de requisições](#section/Seguranca/Limitacao-de-requisicoes)
 
     - `InternalServerError`
@@ -232,7 +232,7 @@ info:
       - Requisição foi feita com uma razão inválida para a operação.
 
     **Vínculos**
-    
+
     - `EntryInvalid`
       - Existem campos inválidos ao tentar criar novo vínculo.
 
@@ -253,9 +253,9 @@ info:
     - `EntryKeyInCustodyOfDifferentParticipant`
       - Já existe vínculo para essa chave com o mesmo dono, mas ela encontra-se associada
         a outro participante. Indica-se que seja feita uma reivindicação de portabilidade.
-    
+
     - `EntryLockedByClaim`
-      - Existe uma reivindicação com status diferente de concluída ou cancelada para a chave 
+      - Existe uma reivindicação com status diferente de concluída ou cancelada para a chave
         do vínculo. Enquanto estiver nessa situação, o vínculo não pode ser excluído.
 
     - `EntryTaxIdNumberByDifferentOwner`
@@ -267,9 +267,9 @@ info:
       - Existem campos inválidos ao tentar criar nova reivindicação.
 
     - `ClaimTypeInconsistent`
-      - Tipo de reivindicação pedida é inconsistente. Esse erro ocorre nas situações em que 
-      se tenta criar a) reivindicação de _posse_, mas vínculo existente tem como dona a mesma 
-      pessoa que reivindica ou b) reinvidicação de _portabilidade_, mas vínculo existente tem 
+      - Tipo de reivindicação pedida é inconsistente. Esse erro ocorre nas situações em que
+      se tenta criar a) reivindicação de _posse_, mas vínculo existente tem como dona a mesma
+      pessoa que reivindica ou b) reinvidicação de _portabilidade_, mas vínculo existente tem
       como dona pessoa diferente da que reivindica.
 
     - `ClaimKeyNotFound`
@@ -305,7 +305,7 @@ info:
 
     - `InfractionReportTransactionNotSettled`
       - A transação definida no relato de infração não foi liquidada.
-    
+
     - `InfractionReportAlreadyBeingProcessedForTransaction`
       - Já existe um relato de infração em andamento para a transação informada.
 
@@ -351,7 +351,7 @@ servers:
 tags:
   - name: Directory
     x-displayName: Diretório
-    description: |- 
+    description: |-
       O diretório de identificadores de contas transacionais é um conjunto de vínculos.
       Um vínculo é uma associação entre uma chave de endereçamento, uma conta transacional e seu dono.
       O dono pode ser uma pessoa física ou uma pessoa jurídica. A chave de endereçamento é usada para identificar unicamente um vínculo.
@@ -370,13 +370,13 @@ tags:
 
       Os tipos de chave suportadas atualmente são as seguintes:
 
-      |  Tipo         | Exp. regular                                                                                               | Exemplo                              | Comentário                                                                |
-      |---------------|------------------------------------------------------------------------------------------------------------|--------------------------------------|---------------------------------------------------------------------------|
-      | CPF           |  ^\[0-9\]{11}$                                                                                             | 12345678901                          |                                                                           |
-      | CNPJ          |  ^\[0-9\]{14}$                                                                                             | 12345678901234                       |                                                                           |
-      | PHONE         |  ^\\+\[1-9\]\[0-9\]\d{1,14}$                                                                               | +5510998765432                       |                                                                           |
-      | EMAIL         |  [e-mails válidos W3C HTML5](https://html.spec.whatwg.org/multipage/input.html#valid-e-mail-address)       | pix@bcb.gov.br                       | E-mail deve possuir no máximo 77 caracteres e deve ser em minúsculo       |
-      | EVP           |  [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}                                              | 123e4567-e89b-12d3-a456-426655440000 | Endereço Virtual de Pagamento é um tipo de chave é gerado pelo DICT       |
+      |  Tipo         | Exp. regular                                                                                                       | Exemplo                              | Comentário                                                                |
+      |---------------|--------------------------------------------------------------------------------------------------------------------|--------------------------------------|---------------------------------------------------------------------------|
+      | CPF           |  ^\[0-9\]{11}$                                                                                                     | 12345678901                          |                                                                           |
+      | CNPJ          |  ^\[0-9\]{14}$                                                                                                     | 12345678901234                       |                                                                           |
+      | PHONE         |  ^\\+\[1-9\]\[0-9\]\d{1,14}$                                                                                       | +5510998765432                       |                                                                           |
+      | EMAIL         |  ^[a-z0-9.!#$&'*+\\/=?^_`{|}~-]+@[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)*$ | pix@bcb.gov.br                       | E-mail deve possuir no máximo 77 caracteres e deve ser em minúsculo       |
+      | EVP           |  [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}                                                      | 123e4567-e89b-12d3-a456-426655440000 | Endereço Virtual de Pagamento é um tipo de chave é gerado pelo DICT       |
 
 
       Novos tipos de chave poderão vir a ser adicionados no futuro. Logo, é importante que a implementação de clientes
@@ -387,22 +387,22 @@ tags:
 
   - name: Claim
     x-displayName: Reivindicação
-    description: |- 
-      Conforme as chaves mudem de dono ou os usuários finais criem contas transacionais em outros PSPs, 
+    description: |-
+      Conforme as chaves mudem de dono ou os usuários finais criem contas transacionais em outros PSPs,
       os seguintes cenários precisarão ser tratados:
-      
-      1. Houve troca de posse de uma chave (telefone ou email) e o novo dono deseja 
-      criar um vínculo para uma conta sua mas o dono anterior já possui vínculo registrado 
+
+      1. Houve troca de posse de uma chave (telefone ou email) e o novo dono deseja
+      criar um vínculo para uma conta sua mas o dono anterior já possui vínculo registrado
       no DICT com essa chave.
-      2. Um usuário deseja mudar a vinculação de uma chave sua para outra conta, que 
+      2. Um usuário deseja mudar a vinculação de uma chave sua para outra conta, que
       está domiciliada em um participante diferente do atual.
 
       Para o cenário 1, deve ser criada uma _reivindicação de posse_. Já para o cenário 2,
       uma _portabilidade_. Em ambos cenários existirá a figura do PSP que irá ceder a chave (PSP Doador),
-      e o PSP que irá receber a chave (PSP Reivindicador). No cenário de _reivindicação de posse_, o PSP 
+      e o PSP que irá receber a chave (PSP Reivindicador). No cenário de _reivindicação de posse_, o PSP
       doador e o reivindicador podem ser o mesmo.
 
-      Nessa especificação, _reivindicação_ sem qualificador é usado como termo mais genérico para se referir 
+      Nessa especificação, _reivindicação_ sem qualificador é usado como termo mais genérico para se referir
       tanto à reivindicação de posse quanto à (reivindicação de) portabilidade.
 
       Os processos de reivindicação são sempre iniciados pelo PSP reivindicador.
@@ -410,7 +410,7 @@ tags:
         - `OPEN` - Aberta pelo reivindicador, mas ainda não recebida pelo doador.
         - `WAITING_RESOLUTION` - Já foi recebida pelo doador e está aguardando a resolução. Os critérios confirmação
         ou cancelamento da reivindicação seguem normas específicas a depender do tipo (posse ou portabilidade).
-        - `CONFIRMED` - O doador confirmou a reivindicação. Isso implica a remoção da chave do DICT e da base interna 
+        - `CONFIRMED` - O doador confirmou a reivindicação. Isso implica a remoção da chave do DICT e da base interna
         do PSP doador. Está aguardando o reivindicador encerrar o processo.
         - `CANCELLED` - O doador ou reivindicador cancelou a reivindicação.
         - `COMPLETED` - Tanto o DICT quanto o reivindicador atualizaram suas bases com o novo vínculo.
@@ -419,46 +419,46 @@ tags:
 
       ```
       ( OPEN )------->( WAITING_RESOLUTION )------->( CONFIRMED )------->( COMPLETED )
-                                |                        /                            
-                                |                       /                             
-                                |                      /                              
+                                |                        /
+                                |                       /
+                                |                      /
                                 |                     /
                                 v                    /
                           ( CANCELLED )<------------v
       ```
 
-      **Importante!** 
+      **Importante!**
       Os participantes deverão monitorar as reivindicações fazendo _polling_ períodico no _endpoint_
-      de [listar reivindicações](#operation/listClaims). A periodicidade adequada dependerá 
+      de [listar reivindicações](#operation/listClaims). A periodicidade adequada dependerá
       das definições de nível de serviço. Consulte o **Manual de Tempos do Pix**.
- 
+
 
   - name: Reconciliation
     x-displayName: Reconciliação
-    description: |- 
-      A reconciliação permite que o participante identifique inconsistências nos vínculos da sua base de dados interna 
-      e o DICT. É possível fazer a verificação de forma agregada, sobre todo o conjunto de vínculos, e a verificação de um 
+    description: |-
+      A reconciliação permite que o participante identifique inconsistências nos vínculos da sua base de dados interna
+      e o DICT. É possível fazer a verificação de forma agregada, sobre todo o conjunto de vínculos, e a verificação de um
       vínculo individual.
-      
+
       Para permitir que a reconciliação seja feita de forma eficiente e segura, toda operação realizada em cima de um vínculo
-      gera um identificador de conteúdo, ou CID (_content identifier_). O CID é um número de 256 bits que identifica de forma 
-      única o vínculo e todos os seus atributos essenciais (ver seção sobre cálculo do CID). Modifições dos dados essenciais 
+      gera um identificador de conteúdo, ou CID (_content identifier_). O CID é um número de 256 bits que identifica de forma
+      única o vínculo e todos os seus atributos essenciais (ver seção sobre cálculo do CID). Modifições dos dados essenciais
       do vínculo implicam na modificação do CID associado a ele.
-      
-      A verificação agregada dos vínculos é feita com base no _verificador de sincronismo_ (VSync). O participante pode 
-      aferir a igualdade do conjunto de vínculos em seu domínio gerando o VSync (ver seção sobre cálculo do VSync) da sua base 
-      e criando uma [verificação de sincronismo](#operation/createSyncVerification). A igualdade dos VSyncs do DICT e do 
-      PSP implica, com altíssima probabilidade, que o conjunto de CIDs é igual. Caso os VSyncs sejam diferentes, o conjunto 
+
+      A verificação agregada dos vínculos é feita com base no _verificador de sincronismo_ (VSync). O participante pode
+      aferir a igualdade do conjunto de vínculos em seu domínio gerando o VSync (ver seção sobre cálculo do VSync) da sua base
+      e criando uma [verificação de sincronismo](#operation/createSyncVerification). A igualdade dos VSyncs do DICT e do
+      PSP implica, com altíssima probabilidade, que o conjunto de CIDs é igual. Caso os VSyncs sejam diferentes, o conjunto
       de CIDs é necessariamente diferente, o que significa que há divergências no conjunto de dados de vínculos naquele momento.
 
       Ao identificar divergências, PSP poderá [consultar pelo CID](#operation/getEntryByCid), [alterar](#operation/updateEntry),
       [remover](#operation/deleteEntry) ou [criar](#operation/createEntry) vínculos colocando no campo `Reason` das requisições
       o valor `RECONCILIATION`.
 
-      As operações feitas no conjunto de vínculos sob domínio do PSP podem ser acompanhadas de forma contínua no 
+      As operações feitas no conjunto de vínculos sob domínio do PSP podem ser acompanhadas de forma contínua no
       [log de eventos de CIDs](#operation/listCidSetEvents).
 
-      Para obter uma lista completa dos CIDs no DICT relativos a um tipo de chave, um PSP poderá solicitar a 
+      Para obter uma lista completa dos CIDs no DICT relativos a um tipo de chave, um PSP poderá solicitar a
       [criação de um arquivo de CIDs](#operation/createCidSetFile).
 
       ## Cálculo de CID
@@ -472,7 +472,7 @@ tags:
       ```
       Observações:
 
-      - `entryAttributes` é uma string construída pela junção dos atributos essenciais do vínculo, separados por `&`. 
+      - `entryAttributes` é uma string construída pela junção dos atributos essenciais do vínculo, separados por `&`.
         Todos atributos são strings codificadas em UTF-8. Atributos nulos são codificados com string em branco, "".
       - `hmacSha256` é a função HMAC baseada na função de hash SHA-256.
       - `requestIdBytes` são 16 bytes aleatórios, gerados para identificar a requisição que cria o vínculo, usado como chave na função hmacSha256.
@@ -488,19 +488,19 @@ tags:
 
 
       ## Cálculo do VSync
-      
-      
-      O VSync é resultado da aplicação de bitwise-XOR ('OU' exclusivo bit-a-bit) sobre todos os CIDs de um determinado 
+
+
+      O VSync é resultado da aplicação de bitwise-XOR ('OU' exclusivo bit-a-bit) sobre todos os CIDs de um determinado
       tipo de chave.
 
-      Exemplo: 
+      Exemplo:
 
       ```
-      cids = ['28c06eb41c4dc9c3ae114831efcac7446c8747777fca8b145ecd31ff8480ae88', 
-              '4d4abb9168114e349672b934d16ed201a919cb49e28b7f66a240e62c92ee007f', 
+      cids = ['28c06eb41c4dc9c3ae114831efcac7446c8747777fca8b145ecd31ff8480ae88',
+              '4d4abb9168114e349672b934d16ed201a919cb49e28b7f66a240e62c92ee007f',
               'fce514f84f37934bc8aa0f861e4f7392273d71b9d18e8209d21e4192a7842058']
 
-      vsync = xor(xor(cids[0], cids[1]), cids[2])  = '996fc1dd3b6b14bcf0c9fe8320eb66d7e2a3fd874ccf767b2e939641b1ea8eaf'      
+      vsync = xor(xor(cids[0], cids[1]), cids[2])  = '996fc1dd3b6b14bcf0c9fe8320eb66d7e2a3fd874ccf767b2e939641b1ea8eaf'
       ````
 
       Observações:
@@ -513,7 +513,7 @@ tags:
   - name: InfractionReport
     x-displayName: Relatos de Infração
     description: |-
-      Relatos de infração servem para reportar transações sob suspeita de fraude (FRAUD). 
+      Relatos de infração servem para reportar transações sob suspeita de fraude (FRAUD).
       Podem ser feitas tanto pelo participante debitado quanto pelo creditado na transação.
 
       Depois de criado, o relato deve ser reconhecido pela outra parte da transação (acknowledge) e,
@@ -552,23 +552,32 @@ tags:
       Assim como nos dados estatísticos de chaves, esses totais são consolidados para os últimos 3 dias, 30 dias e 6 meses anteriores ao
       momento da consulta.
 
+  - name: Policies
+    x-displayName: Política de Limitação
+    description: |-
+      O controle do fluxo de acesso aos serviços do DICT é realizado por meio de políticas de limitação de requisições, utilizando o
+      algoritmo de [token bucket](https://en.wikipedia.org/wiki/Token_bucket). Para cada política de limitação, existe um balde com
+      configurações específicas, de acordo com a seção [limitação de requisições](#section/Seguranca/Limitacao-de-requisicoes).
+      
+      É possível, a qualquer momento, consultar da lista de políticas de limitação e o estado dos baldes.
+
 paths:
 ########################################################################################################################
-## ENTRIES 
+## ENTRIES
 ########################################################################################################################
   '/entries/':
     post:
       summary: Criar Vínculo
-      description: |- 
+      description: |-
           Cria um novo vínculo de chave com conta transacional.
 
           ### Idempotência
-          A operação de criação de vínculo é idempotente. Isso significa que é seguro realizar uma nova tentativa em caso de falhas 
-          temporárias, como erros de conexão ou término abrupto de processos. A resposta retornada para uma requisição repetida é 
+          A operação de criação de vínculo é idempotente. Isso significa que é seguro realizar uma nova tentativa em caso de falhas
+          temporárias, como erros de conexão ou término abrupto de processos. A resposta retornada para uma requisição repetida é
           equivalente à resposta dada à primeira requisição processada.
-          
-          Para garantir a idempotência da operação, a requisição tem um campo `RequestId`. Esse campo é um 
-          [UUID versão 4](https://tools.ietf.org/html/rfc4122#section-4.4) e deve ser único no contexto de um mesmo participante. 
+
+          Para garantir a idempotência da operação, a requisição tem um campo `RequestId`. Esse campo é um
+          [UUID versão 4](https://tools.ietf.org/html/rfc4122#section-4.4) e deve ser único no contexto de um mesmo participante.
           O `RequestId` fica associado ao vínculo criado e é usado no cálculo do seu CID (ver seção de reconciliação).
 
           Uma requisição de criação é considerada repetida quando o CID do vínculo contido na requisição já existe no DICT.
@@ -579,28 +588,28 @@ paths:
       tags:
         - Directory
       requestBody:
-        content: 
+        content:
           application/xml:
             schema:
               $ref: '#/components/schemas/CreateEntryRequest'
             examples:
                 phone:
-                  value: 
+                  value:
                     $ref: "./examples/entries/CreateEntryRequest.xml"
       responses:
         '201':
           description: Created
           content:
-            application/xml:           
+            application/xml:
               schema:
-                $ref: '#/components/schemas/CreateEntryResponse'                                
+                $ref: '#/components/schemas/CreateEntryResponse'
               examples:
                 example:
-                  value: 
+                  value:
                     $ref: "./examples/entries/CreateEntryResponse.xml"
         '400':
           $ref: "#/components/responses/EntryInvalid"
-        '403': 
+        '403':
           $ref: "#/components/responses/Forbidden"
         '503':
           $ref: "#/components/responses/ServiceUnavailable"
@@ -630,21 +639,20 @@ paths:
         Os eventos são agregados por chave, titular (cpf ou cnpj) e conta transacional em 3 janelas temporais:
 
         - últimos 3 dias (d3)
-        - últimos 30 dias (d30) 
+        - últimos 30 dias (d30)
         - últimos 6 meses, sem contar o mês corrente (m6)
 
-        Esses contadores tem ciclo de vida independente do vínculo. Eles não são zerados, mesmo que haja 
-        desativação da chave ou da conta. Se houver troca de titularidade, ou portabilidade, os dados 
+        Esses contadores tem ciclo de vida independente do vínculo. Eles não são zerados, mesmo que haja
+        desativação da chave ou da conta. Se houver troca de titularidade, ou portabilidade, os dados
         são herdados pelo novo registro no que couber (titular, chave, ou conta).
 
         Os contadores de transações realizadas são quantizados. A escala usada é 0, 1, 5, 10, 50, 100, 500, 1000, 5000...
         Arrendonda-se o número para cima, por exemplo: 3 → 5, 190 → 500 .
 
         ### Limitação de requisições
-        A consulta a chaves do tipo EMAIL e PHONE está sujeita à política de limitação (_rate-limiting_) de requisições.
-        A limitação funciona com base em cabeçalhos enviados na requisição. Os cabeçalhos de requisição são obrigatórios 
-        para todos os tipos de chaves. Na resposta, para consultas sujeitas à política de limitação, são enviados 
-        cabeçalhos que informam detalhes sobre o estado dos _buckets_ associados ao participante e ao usuário final.
+        A consulta a chaves está sujeita à política de limitação (_rate-limiting_) de requisições.
+        A limitação funciona com base em cabeçalhos enviados na requisição. Os cabeçalhos de requisição são obrigatórios
+        para todos os tipos de chaves.
 
         O parâmetro `PI-PayerId` é o identificador único do usuário final, vinculado a um participante.
         Requisições vindas de um mesmo usuário, para um mesmo participante, devem usar o mesmo identificador.
@@ -654,7 +662,7 @@ paths:
         de possíveis violações de limites.
 
         ### Cache
-        Consultas a vínculos podem ter suas respostas _cacheadas_ no PSP, devendo seguir as 
+        Consultas a vínculos podem ter suas respostas _cacheadas_ no PSP, devendo seguir as
         diretivas contidas no header [`Cache-Control`](https://tools.ietf.org/html/rfc7234#section-5.2).
 
         _Importante_: Para fazer uso de cache, clientes HTTP geralmente precisam ser configurados. Não
@@ -668,7 +676,10 @@ paths:
             example: '12345678'
           in: header
           name: PI-RequestingParticipant
-          description: 'Identificador SPB do participante (direto ou indireto) que faz a requisição.'
+          description: |-
+            Identificador único do requisitante, podendo ser:
+              - ISPB do participante (direto ou indireto) que faz a requisição **OU** 
+              - 8 primeiros dígitos do CNPJ para Iniciadores de Pagamento
           required: true
         - schema:
             type: string
@@ -703,7 +714,7 @@ paths:
       tags:
         - Directory
       description: |-
-        Atualiza um vínculo. 
+        Atualiza um vínculo.
 
         A ser utilizado no cenário de atualização da informação da conta, nome e nome fantasia de um cliente, permanecendo este no mesmo PSP.
         Somente podem ser atualizadas as informações de conta do vínculo, nome e nome fantasia do cliente. Outras atualizações do vínculo
@@ -752,6 +763,7 @@ paths:
         in: path
         required: true
     get:
+      deprecated: true 
       summary: Consultar Vínculo(PSP iniciador)
       tags:
         - Directory
@@ -768,7 +780,7 @@ paths:
         do tipo EMAIL e PHONE para PSP's iniciadores também está sujeita à política de limitação (_rate-limiting_) de requisições.
         A limitação funciona com base em cabeçalhos enviados na requisição, obrigatórios para todos os tipos de chaves, porém,
         diferentemente das políticas anti scan aplicadas à consulta geral de chaves, as "fichas" **não são** repostas nos "baldes"
-        quando as transações são liquidadas. Os baldes possuem apenas a reposição periódica, como descrito na seção [segurança](#section/Seguranca).
+        quando as ordens de pagamento são enviadas. Os baldes possuem apenas a reposição periódica, como descrito na seção [segurança](#section/Seguranca).
 
         ### Cache
         Aplica-se as mesmas recomendações da seção "Cache" de [consultar vínculo](#operation/getEntry).
@@ -812,7 +824,7 @@ paths:
           $ref: "#/components/schemas/Key"
         name: Key
         in: path
-        required: true  
+        required: true
     post:
       summary: Remover Vínculo
       operationId: deleteEntry
@@ -820,24 +832,24 @@ paths:
       tags:
         - Directory
       requestBody:
-        content: 
+        content:
           application/xml:
             schema:
               $ref: '#/components/schemas/DeleteEntryRequest'
             examples:
               example:
-                value: 
+                value:
                   $ref: './examples/entries/DeleteEntryRequest.xml'
       responses:
         '200':
           description: OK
           content:
-            application/xml:           
+            application/xml:
               schema:
                 $ref: '#/components/schemas/DeleteEntryResponse'
               examples:
                 example:
-                  value: 
+                  value:
                     $ref: './examples/entries/DeleteEntryResponse.xml'
         '403':
           $ref: "#/components/responses/Forbidden"
@@ -880,8 +892,6 @@ paths:
                     $ref: './examples/keys/CheckKeysResponse.xml'
         '403':
           $ref: "#/components/responses/Forbidden"
-        '404':
-          $ref: "#/components/responses/NotFound"
         '503':
           $ref: "#/components/responses/ServiceUnavailable"
       servers:
@@ -891,14 +901,14 @@ paths:
           description: Produção
 
 #######################################################################################################################
-## CLAIMS 
+## CLAIMS
 ########################################################################################################################
   '/claims/':
     post:
       summary: Criar Reivindicação
-      description: |- 
-          Cria uma nova reivindicação. 
-          
+      description: |-
+          Cria uma nova reivindicação.
+
           Essa operação é feita pelo participante reivindicador a pedido do usuário final.
           O vínculo atual permanece inalterado, até que haja a confirmação pelo PSP doador.
 
@@ -908,21 +918,21 @@ paths:
             |---------------|:----------:|:------------:|
             | CPF           |            |      ✓       |
             | CNPJ          |            |      ✓       |
-            | PHONE         |    ✓      |      ✓       |
-            | EMAIL         |    ✓      |      ✓       |
+            | PHONE         |     ✓      |      ✓       |
+            | EMAIL         |     ✓      |      ✓       |
             | EVP           |            |              |
 
       operationId: createClaim
       tags:
         - Claim
       requestBody:
-        content: 
+        content:
           application/xml:
             schema:
               $ref: '#/components/schemas/CreateClaimRequest'
             examples:
                 phone-claim:
-                  value: 
+                  value:
                     $ref: './examples/claims/CreateClaimRequest.xml'
       responses:
         '201':
@@ -933,11 +943,11 @@ paths:
                 $ref: '#/components/schemas/CreateClaimResponse'
               examples:
                 example:
-                  value: 
+                  value:
                     $ref: './examples/claims/CreateClaimResponse.xml'
         '400':
           $ref: "#/components/responses/ClaimInvalid"
-        '403': 
+        '403':
           $ref: "#/components/responses/Forbidden"
         '503':
           $ref: "#/components/responses/ServiceUnavailable"
@@ -1013,12 +1023,12 @@ paths:
 #          in: query
 #          required: false
       summary: Listar Reivindicações
-      description: |- 
+      description: |-
           Obtém uma lista de reivindicações, ordenada de forma crescente pelo campo `LastModified`, de acordo com os filtros passados.
-          
+
           Observações:
           - Ao percorrer a lista em intervalos de tempo fechados, recomendável para que não se pule nenhum elemento, alguns elementos retornados poderão se repetir.
-          - O comportamento dos filtros `isDonor` e `isClaimer`, quando os valores passados são iguais, é disjuntivo: são retornadas reinvidicações em que 
+          - O comportamento dos filtros `isDonor` e `isClaimer`, quando os valores passados são iguais, é disjuntivo: são retornadas reinvidicações em que
           o participante é doador OU reivindicador.
           - A atualização de informações de reinvindicações para listagens é _assíncrona_ em relação às operações de inclusão e atualização de registros, sendo assim,
           é possível haver um retardo de _5 segundos_ até que os dados incluídos ou alterados constem na consulta.
@@ -1039,9 +1049,9 @@ paths:
                     $ref: './examples/claims/ListClaimsResponse.xml'
         '400':
           $ref: "#/components/responses/BadRequest"
-        '403': 
+        '403':
           $ref: "#/components/responses/Forbidden"
-  
+
   '/claims/{ClaimId}':
     parameters:
       - schema:
@@ -1057,7 +1067,7 @@ paths:
         - schema:
             type: string
             pattern: '^[0-9]{8}$'
-            example: '12345678'            
+            example: '12345678'
           in: header
           name: PI-RequestingParticipant
           description: 'Identificador SPB do participante (direto ou indireto) que faz a requisição.'
@@ -1074,11 +1084,11 @@ paths:
                 $ref: '#/components/schemas/GetClaimResponse'
               examples:
                 example:
-                  value: 
+                  value:
                     $ref: './examples/claims/GetClaimResponse.xml'
         '404':
           $ref: "#/components/responses/NotFound"
-  
+
   '/claims/{ClaimId}/acknowledge':
     parameters:
       - schema:
@@ -1094,19 +1104,19 @@ paths:
         Notifica recebimento pelo participante doador de reivindicação com status `OPEN`.
 
           ### Idempotência
-          A operação é idempotente. Caso reivindicação já tenha sido recebida e ela esteja ainda com 
+          A operação é idempotente. Caso reivindicação já tenha sido recebida e ela esteja ainda com
           status `WAITING_RESOLUTION`, será retornada resposta equivalente à primeira requisição.
 
       tags:
         - Claim
       requestBody:
-        content: 
+        content:
           application/xml:
             schema:
               $ref: '#/components/schemas/AcknowledgeClaimRequest'
             examples:
               example:
-                value: 
+                value:
                   $ref: './examples/claims/AcknowledgeClaimRequest.xml'
       responses:
         '200':
@@ -1125,7 +1135,7 @@ paths:
           $ref: "#/components/responses/NotFound"
         '503':
           $ref: "#/components/responses/ServiceUnavailable"
-  
+
   '/claims/{ClaimId}/confirm':
     parameters:
       - schema:
@@ -1137,11 +1147,11 @@ paths:
     post:
       summary: Confirmar Reivindicação
       operationId: confirmClaim
-      description: |- 
+      description: |-
         Confirma a operação de reivindicação. Como consequência, vínculo da chave com participante doador é removido.
-        
+
         Status deve estar em `WAITING_RESOLUTION`.
-        
+
         Para reivindicação de posse, caso razão seja `DEFAULT_OPERATION`, o prazo de resolução (`ResolutionPeriodEnd`)
           deve ter passado. Se a razão informada for `USER_REQUESTED`, o prazo de encerramento (`CompletionPeriodEnd`)
           será adiantado para permitir o encerramento imediato pelo reivindicador.
@@ -1195,13 +1205,13 @@ paths:
       tags:
         - Claim
       requestBody:
-        content: 
+        content:
           application/xml:
             schema:
               $ref: '#/components/schemas/ConfirmClaimRequest'
             examples:
               example:
-                value: 
+                value:
                   $ref: './examples/claims/ConfirmClaimRequest.xml'
       responses:
         '200':
@@ -1232,9 +1242,9 @@ paths:
     post:
       summary: Cancelar Reivindicação
       operationId: cancelClaim
-      description: |- 
-        Cancela reivindicação. 
-                
+      description: |-
+        Cancela reivindicação.
+
         Para reivindicação de posse, status deve ser `WAITING_RESOLUTION` ou `CONFIRMED`. Se razão
         de cancelamento for `DEFAULT_OPERATION`, prazo de validação de posse da chave do usuário
         reivindicador deve ter passado.
@@ -1299,19 +1309,19 @@ paths:
         </table>
 
           ### Idempotência
-          A operação é idempotente. Caso reivindicação já tenha sido cancelada com os mesmos parâmetros, 
+          A operação é idempotente. Caso reivindicação já tenha sido cancelada com os mesmos parâmetros,
           será retornada resposta equivalente à primeira requisição.
 
       tags:
         - Claim
       requestBody:
-        content: 
+        content:
           application/xml:
             schema:
               $ref: '#/components/schemas/CancelClaimRequest'
             examples:
               example:
-                value: 
+                value:
                   $ref: './examples/claims/CancelClaimRequest.xml'
       responses:
         '200':
@@ -1322,7 +1332,7 @@ paths:
                 $ref: '#/components/schemas/CancelClaimResponse'
               examples:
                 example:
-                  value: 
+                  value:
                     $ref: './examples/claims/CancelClaimResponse.xml'
         '403':
           $ref: "#/components/responses/Forbidden"
@@ -1330,7 +1340,7 @@ paths:
           $ref: "#/components/responses/NotFound"
         '503':
           $ref: "#/components/responses/ServiceUnavailable"
- 
+
   '/claims/{ClaimId}/complete':
     parameters:
       - schema:
@@ -1342,12 +1352,12 @@ paths:
     post:
       summary: Concluir Reivindicação
       operationId: completeClaim
-      description: |- 
+      description: |-
         Conclui reivindicação pelo reivindicador. Como consequência, vínculo da chave com participante reivindicador é criado.
-        
+
         Para reivindicação de posse, status deve ser `CONFIRMED` e prazo definido pelo campo `CompletionPeriodEnd`
         deve ter passado.
-        
+
         Para portabilidade, status deve ser `CONFIRMED`.
 
         ### Idempotência
@@ -1357,7 +1367,7 @@ paths:
       tags:
         - Claim
       requestBody:
-        content: 
+        content:
           application/xml:
             schema:
               $ref: '#/components/schemas/CompleteClaimRequest'
@@ -1374,7 +1384,7 @@ paths:
                 $ref: '#/components/schemas/CompleteClaimResponse'
               examples:
                 example:
-                  value: 
+                  value:
                     $ref: './examples/claims/CompleteClaimResponse.xml'
         '403':
           $ref: "#/components/responses/Forbidden"
@@ -1384,18 +1394,18 @@ paths:
           $ref: "#/components/responses/ServiceUnavailable"
 
 #######################################################################################################################
-## RECONCILIATION 
+## RECONCILIATION
 ########################################################################################################################
   '/sync-verifications/':
     post:
       summary: Verificar Sincronismo
-      description: |- 
+      description: |-
           Cria uma verificação de sincronismo para um partipante e tipo de chave.
       operationId: createSyncVerification
       tags:
         - Reconciliation
       requestBody:
-        content: 
+        content:
           application/xml:
             schema:
               $ref: '#/components/schemas/CreateSyncVerificationRequest'
@@ -1412,18 +1422,18 @@ paths:
                 $ref: '#/components/schemas/CreateSyncVerificationResponse'
               examples:
                 example:
-                  value: 
+                  value:
                     $ref: './examples/reconciliation/CreateSyncVerificationResponse.xml'
         '400':
           $ref: "#/components/responses/BadRequest"
-        '403': 
+        '403':
           $ref: "#/components/responses/Forbidden"
         '503':
           $ref: "#/components/responses/ServiceUnavailable"
   '/cids/files/':
     post:
       summary: Criar Arquivo de CIDs
-      description: |- 
+      description: |-
           Cria um arquivo contendo todos os CIDs de um determinado tipo de chave do participante.
           O formato do arquivo é um CID por linha ('\n' como EOL), sem ordem definida.
 
@@ -1432,24 +1442,24 @@ paths:
       tags:
         - Reconciliation
       requestBody:
-        content: 
+        content:
           application/xml:
             schema:
               $ref: '#/components/schemas/CreateCidSetFileRequest'
             examples:
                 phone:
-                  value: 
+                  value:
                     $ref: './examples/reconciliation/CreateCidSetFileRequest.xml'
       responses:
         '201':
           description: Created
           content:
-            application/xml:           
+            application/xml:
               schema:
-                $ref: '#/components/schemas/CreateCidSetFileResponse'                                
+                $ref: '#/components/schemas/CreateCidSetFileResponse'
               examples:
                 example:
-                  value: 
+                  value:
                     $ref: './examples/reconciliation/CreateCidSetFileResponse.xml'
         '400':
           $ref: "#/components/responses/BadRequest"
@@ -1472,7 +1482,7 @@ paths:
         - schema:
             type: string
             pattern: '^[0-9]{8}$'
-            example: '12345678'            
+            example: '12345678'
           in: header
           name: PI-RequestingParticipant
           description: 'Identificador SPB do participante (direto ou indireto) que faz a requisição.'
@@ -1483,14 +1493,14 @@ paths:
         '200':
           description: OK
           content:
-            application/xml:           
+            application/xml:
               schema:
-                $ref: '#/components/schemas/GetCidSetFileResponse'                                
+                $ref: '#/components/schemas/GetCidSetFileResponse'
               examples:
                 example:
-                  value: 
+                  value:
                     $ref: './examples/reconciliation/GetCidSetFileResponse.xml'
-        '403': 
+        '403':
           $ref: "#/components/responses/Forbidden"
         '404':
           $ref: "#/components/responses/NotFound"
@@ -1555,16 +1565,16 @@ paths:
         '200':
           description: OK
           content:
-            application/xml:           
+            application/xml:
               schema:
                 $ref: '#/components/schemas/ListCidSetEventsResponse'
               examples:
                 example:
-                  value: 
+                  value:
                     $ref: './examples/reconciliation/ListCidSetEventsResponse.xml'
         '400':
           $ref: "#/components/responses/BadRequest"
-        '403': 
+        '403':
           $ref: "#/components/responses/Forbidden"
   '/cids/entries/{Cid}':
     parameters:
@@ -1592,12 +1602,12 @@ paths:
         '200':
           description: OK
           content:
-            application/xml:           
+            application/xml:
               schema:
                 $ref: '#/components/schemas/GetEntryByCidResponse'
               examples:
                 example:
-                  value: 
+                  value:
                     $ref: './examples/reconciliation/GetEntryByCidResponse.xml'
         '404':
           $ref: "#/components/responses/NotFound"
@@ -1616,11 +1626,11 @@ paths:
       tags:
         - InfractionReport
       requestBody:
-        content: 
+        content:
           application/xml:
             schema:
               $ref: '#/components/schemas/CreateInfractionReportRequest'
-            examples:        
+            examples:
                 SPI - Settled:
                   value:
                     $ref: './examples/infractions/CreateInfractionReportRequest-SPISettled.xml'
@@ -1667,8 +1677,8 @@ paths:
                     $ref: './examples/infractions/CreateInfractionReportResponse-INTERNALRejectedPayer.xml'
         '400':
           $ref: "#/components/responses/BadRequest"
-        '403': 
-          $ref: "#/components/responses/Forbidden"        
+        '403':
+          $ref: "#/components/responses/Forbidden"
         '503':
           $ref: "#/components/responses/ServiceUnavailable"
     get:
@@ -1744,9 +1754,9 @@ paths:
 #          in: query
 #          required: false
       summary: Listar Relatos de Infração
-      description: |- 
+      description: |-
           Obtém lista de relatos de infração em que o participante é parte.
-          
+
           Lista de relatos é ordenada de forma crescente pelo campo `LastModified`.
 
           Observação:
@@ -1768,7 +1778,7 @@ paths:
                     $ref: './examples/infractions/ListInfractionReportsResponse.xml'
         '400':
           $ref: "#/components/responses/BadRequest"
-        '403': 
+        '403':
           $ref: "#/components/responses/Forbidden"
   '/infraction-reports/{InfractionReportId}':
     parameters:
@@ -1785,7 +1795,7 @@ paths:
         - schema:
             type: string
             pattern: '^[0-9]{8}$'
-            example: '12345678'            
+            example: '12345678'
           in: header
           name: PI-RequestingParticipant
           description: 'Identificador SPB do participante (direto ou indireto) que faz a requisição.'
@@ -1802,7 +1812,7 @@ paths:
                 $ref: '#/components/schemas/GetInfractionReportResponse'
               examples:
                 example:
-                  value: 
+                  value:
                     $ref: './examples/infractions/GetInfractionReportResponse.xml'
         '404':
           $ref: "#/components/responses/NotFound"
@@ -1819,7 +1829,8 @@ paths:
       operationId: acknowledgeInfractionReport
       description: |-
         Notifica recebimento pelo participante. Se o relato foi criado pelo participante debitado, o
-        creditado deve realizar o recebimento e vice-versa.
+        creditado deve realizar o recebimento. Por outro lado, se o relato foi criado pelo creditado,
+        o debitado deve realizar o recebimento.
 
           ### Idempotência
           A operação é idempotente. Caso o relato já tenha sido recebido e esteja ainda com
@@ -1827,13 +1838,13 @@ paths:
       tags:
         - InfractionReport
       requestBody:
-        content: 
+        content:
           application/xml:
             schema:
               $ref: '#/components/schemas/AcknowledgeInfractionReportRequest'
             examples:
               example:
-                value: 
+                value:
                   $ref: './examples/infractions/AcknowledgeInfractionReportRequest.xml'
       responses:
         '200':
@@ -1863,7 +1874,7 @@ paths:
     post:
       summary: Cancelar Relato de Infração
       operationId: cancelInfractionReport
-      description: |- 
+      description: |-
         Cancela o relato de infração. Só pode ser realizada pelo participante que criou o relato.
 
           ### Idempotência
@@ -1873,13 +1884,13 @@ paths:
       tags:
         - InfractionReport
       requestBody:
-        content: 
+        content:
           application/xml:
             schema:
               $ref: '#/components/schemas/CancelInfractionReportRequest'
             examples:
               example:
-                value: 
+                value:
                   $ref: './examples/infractions/CancelInfractionReportRequest.xml'
       responses:
         '200':
@@ -1890,7 +1901,7 @@ paths:
                 $ref: '#/components/schemas/CancelInfractionReportResponse'
               examples:
                 example:
-                  value: 
+                  value:
                     $ref: './examples/infractions/CancelInfractionReportResponse.xml'
         '403':
           $ref: "#/components/responses/Forbidden"
@@ -1909,9 +1920,10 @@ paths:
     post:
       summary: Fechar Relato de Infração
       operationId: closeInfractionReport
-      description: |- 
+      description: |-
         Fecha o relato de infração. Se o relato foi criado pelo participante debitado, o
-        creditado deve realizar o fechamento e vice-versa.
+        creditado deve realizar o fechamento. Por outro lado, se o relato foi criado pelo creditado,
+        o debitado deve realizar o fechamento.
 
         Para fechamento, o status deve ser `ACKNOWLEDGED`.
 
@@ -1922,13 +1934,13 @@ paths:
       tags:
         - InfractionReport
       requestBody:
-        content: 
+        content:
           application/xml:
             schema:
               $ref: '#/components/schemas/CloseInfractionReportRequest'
             examples:
               example:
-                value: 
+                value:
                   $ref: './examples/infractions/CloseInfractionReportRequest.xml'
       responses:
         '200':
@@ -1939,7 +1951,7 @@ paths:
                 $ref: '#/components/schemas/CloseInfractionReportResponse'
               examples:
                 example:
-                  value: 
+                  value:
                     $ref: './examples/infractions/CloseInfractionReportResponse.xml'
         '403':
           $ref: "#/components/responses/Forbidden"
@@ -2209,7 +2221,7 @@ paths:
       - schema:
             type: string
             pattern: '^[0-9]{11,14}$'
-            example: '12345678901'   
+            example: '12345678901'
         name: TaxIdNumber
         in: path
         required: true
@@ -2232,18 +2244,106 @@ paths:
         '200':
           description: OK
           content:
-            application/xml:           
+            application/xml:
               schema:
                 $ref: '#/components/schemas/GetOwnerStatisticsResponse'
               examples:
                 example:
-                  value: 
+                  value:
                     $ref: './examples/statistics/GetOwnerStatisticsResponse.xml'
-        '403': 
+        '403':
           $ref: "#/components/responses/Forbidden"
-        '404':
-          $ref: "#/components/responses/NotFound"
+        '503':
+          $ref: "#/components/responses/ServiceUnavailable"
 
+  #######################################################################################################################
+  ## POLICIES
+  #######################################################################################################################
+  '/policies/':
+    get:
+      summary: Listar Políticas
+      description: |- 
+        Obtém a lista de políticas de limitação de acesso ao DICT para o participante requisitante. 
+      
+        Além da lista de políticas, o serviço informa também a categoria em que o participante se encontra, de acordo com 
+        a tabela presente no item `ENTRIES_READ_PARTICIPANT_ANTISCAN` da seção [limitação de requisições](#section/Seguranca/Limitacao-de-requisicoes).
+
+        Cada item da lista detém informações do estado do balde correspondente no momento da consulta.
+      operationId: bucketStates
+      parameters:
+        - schema:
+            type: string
+            pattern: '^[0-9]{8}$'
+            example: '12345678'
+          in: header
+          name: PI-RequestingParticipant
+          description: 'Identificador SPB do participante (direto ou indireto) que faz a requisição.'
+          required: true
+      tags:
+        - Policies
+      responses:
+        '200':
+          description: OK
+          content:
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/ListPoliciesResponse'
+              examples:
+                example:
+                  value:
+                    $ref: './examples/policies/ListPoliciesResponse.xml'
+        '403':
+          $ref: "#/components/responses/Forbidden"
+        '503':
+          $ref: "#/components/responses/ServiceUnavailable"
+      servers:
+        - url: https://dict-ratelimit-h.pi.rsfn.net.br:16522/api/v1/
+          description: Homologação
+        - url: https://dict-ratelimit.pi.rsfn.net.br:16422/api/v1/
+          description: Produção
+  '/policies/{policy}':
+    parameters:
+      - schema:
+            type: string
+            example: 'ENTRIES_READ_PARTICIPANT_ANTISCAN'
+        name: Policy
+        in: path
+        required: true
+    get:
+      summary: Consultar Política
+      description: Obtém o estado atual do balde do participante para a política informada.
+      operationId: getPolicy
+      parameters:
+        - schema:
+            type: string
+            pattern: '^[0-9]{8}$'
+            example: '12345678'
+          in: header
+          name: PI-RequestingParticipant
+          description: Identificador SPB do participante (direto ou indireto) que faz a requisição.
+          required: true
+      tags:
+        - Policies
+      responses:
+        '200':
+          description: OK
+          content:
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/GetPolicyResponse'
+              examples:
+                example:
+                  value:
+                    $ref: './examples/policies/GetPolicyResponse.xml'
+        '403':
+          $ref: "#/components/responses/Forbidden"
+        '503':
+          $ref: "#/components/responses/ServiceUnavailable"
+      servers:
+        - url: https://dict-ratelimit-h.pi.rsfn.net.br:16522/api/v1/
+          description: Homologação
+        - url: https://dict-ratelimit.pi.rsfn.net.br:16422/api/v1/
+          description: Produção
 components:
   schemas:
     $ref: './schemas.yaml'

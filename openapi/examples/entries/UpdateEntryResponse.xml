@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <UpdateEntryResponse>
     <Signature></Signature>
-    <ResponseTime>2020-01-10T10:00:00Z</ResponseTime>
+    <ResponseTime>2020-01-10T10:00:00.000Z</ResponseTime>
     <CorrelationId>a9f13566e19f5ca51329479a5bae60c5</CorrelationId>
     <Entry>
         <Key>11122233300</Key>
@@ -11,14 +11,14 @@
             <Branch>0001</Branch>
             <AccountNumber>0007654321</AccountNumber>
             <AccountType>CACC</AccountType>
-            <OpeningDate>2010-01-10T03:00:00Z</OpeningDate>
+            <OpeningDate>2010-01-10T03:00:00.000Z</OpeningDate>
         </Account>
         <Owner>
             <Type>NATURAL_PERSON</Type>
             <TaxIdNumber>11122233300</TaxIdNumber>
             <Name>João Silva</Name>
         </Owner>
-        <CreationDate>2019-11-18T03:00:00Z</CreationDate>
-        <KeyOwnershipDate>2019-11-18T03:00:00Z</KeyOwnershipDate>
+        <CreationDate>2019-11-18T03:00:00.000Z</CreationDate>
+        <KeyOwnershipDate>2019-11-18T03:00:00.000Z</KeyOwnershipDate>
     </Entry>
 </UpdateEntryResponse>

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<GetPolicyResponse>
+    <Signature></Signature>
+    <CorrelationId>B20220902102129115123456788B2B22</CorrelationId>
+    <ResponseTime>2022-09-02T13:21:29.110Z</ResponseTime>
+    <Category>A</Category>
+    <Policy>
+        <AvailableTokens>0</AvailableTokens>
+        <Capacity>0</Capacity>
+        <RefillTokens>0</RefillTokens>
+        <RefillPeriodSec>0</RefillPeriodSec>
+        <Name>ENTRIES_READ_PARTICIPANT_ANTISCAN</Name>
+    </Policy>
+</GetPolicyResponse>

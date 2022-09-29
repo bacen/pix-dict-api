@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <GetClaimResponse>
     <Signature></Signature>
-    <ResponseTime>2020-01-10T10:00:00Z</ResponseTime>
+    <ResponseTime>2020-01-10T10:00:00.000Z</ResponseTime>
     <CorrelationId>a9f13566e19f5ca51329479a5bae60c5</CorrelationId>
     <Claim>
         <Type>OWNERSHIP</Type>
@@ -12,7 +12,7 @@
             <Branch>0001</Branch>
             <AccountNumber>0007654321</AccountNumber>
             <AccountType>CACC</AccountType>
-            <OpeningDate>2010-01-10T03:00:00Z</OpeningDate>
+            <OpeningDate>2010-01-10T03:00:00.000Z</OpeningDate>
         </ClaimerAccount>
         <Claimer>
             <Type>NATURAL_PERSON</Type>
@@ -22,8 +22,8 @@
         <DonorParticipant>87654321</DonorParticipant>
         <Id>123e4567-e89b-12d3-a456-426655440000</Id>
         <Status>OPEN</Status>
-        <ResolutionPeriodEnd>2020-01-17T10:00:00Z</ResolutionPeriodEnd>
-        <CompletionPeriodEnd>2020-01-17T10:00:00Z</CompletionPeriodEnd>
-        <LastModified>2020-01-10T10:00:00Z</LastModified>
+        <ResolutionPeriodEnd>2020-01-17T10:00:00.000Z</ResolutionPeriodEnd>
+        <CompletionPeriodEnd>2020-01-17T10:00:00.000Z</CompletionPeriodEnd>
+        <LastModified>2020-01-10T10:00:00.000Z</LastModified>
     </Claim>
 </GetClaimResponse>

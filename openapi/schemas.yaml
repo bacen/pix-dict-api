@@ -693,6 +693,45 @@ RefundRejectionReason:
     - CANNOT_REFUND
     - OTHER
   description: Razão da rejeição da solicitação de devolução.
+Policy:
+  type: object
+  description: Dados do estado de um balde de uma política de limitação de acesso
+  properties:
+    AvailableTokens:
+      type: integer
+      description: Quantidade de fichas disponíveis no balde no momento da consulta.
+    Capacity:
+      type: integer
+      description: Capacidade total de fichas do balde.
+    RefillTokens:
+      type: integer
+      description: Quantidade de fichas de reposição periódica.
+    RefillPeriodSec:
+      type: integer
+      description: Período de reposição de fichas no balde.
+    Name:
+      type: string
+      example: 'ENTRIES_READ_PARTICIPANT_INITIATOR'
+      description: Nome da política de limitação de acesso.
+  required:
+    - AvailableTokens
+    - Capacity
+    - RefillTokens
+    - RefillPeriodSec
+    - Name
+PolicyCategory:
+  enum:
+  - A
+  - B
+  - C
+  - D
+  - E
+  - F
+  description: Categoria de política de limitação de acesso em que se encontra o participante.
+  example: A
+  pattern: '^[A-F]{1}$'
+
+
 #### SYNC REQ-RESP #####
 
 CreateCidSetFileRequest:
@@ -1251,6 +1290,8 @@ CheckKeysRequest:
   properties:
     Keys:
       type: array
+      minItems: 1
+      maxItems: 200
       description: Chaves de endereçamento
       items:
         $ref: '#/Key'
@@ -1685,6 +1726,45 @@ OwnerStatistics:
       description: Contadores de eventos de algum tipo
       items:
         $ref: '#/ByCounter'
+
+##### POLICIES REQ-RESP ####
+
+ListPoliciesResponse:
+  type: object
+  properties:
+    Signature:
+      type: object
+      xml:
+        prefix: ds
+        namespace: 'http://www.w3.org/2000/09/xmldsig#'
+    ResponseTime:
+      type: string
+      format: date-time
+    CorrelationId:
+      $ref: '#/CorrelationId'
+    Category:
+      $ref: '#/PolicyCategory'
+    Policies:
+      type: array
+      items:
+        $ref: '#/Policy'
+GetPolicyResponse:
+  type: object
+  properties:
+    Signature:
+      type: object
+      xml:
+        prefix: ds
+        namespace: 'http://www.w3.org/2000/09/xmldsig#'
+    ResponseTime:
+      type: string
+      format: date-time
+    CorrelationId:
+      $ref: '#/CorrelationId'
+    Category:
+      $ref: '#/PolicyCategory'
+    Policy:
+      $ref: '#/Policy'
 
 #################  
 

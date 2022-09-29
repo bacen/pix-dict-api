@@ -2,6 +2,33 @@
 
 Mudanças relevantes na API do DICT serão documentadas aqui.
 
+## [1.8.0] - 2022-09-25
+### Adicionado
+- Novas políticas de limitação REFUND_LIST_WITH_ROLE e REFUND_LIST_WITHOUT_ROLE para listagem de pedidos de devolução
+- Novas políticas de limitação POLICIES_READ e POLICIES_LIST para o serviço de consulta de baldes
+- Endpoints para consulta de baldes na seção “Política de Limitação"
+
+### Alterado
+- Política de limitação KEYS_READ renomeada para KEYS_CHECK
+- Taxa de reposição e tamanho do balde da política de limitação STATISTICS_READ alterados de 100 para 500
+- Texto de descrição do campo PI-RequestingParticipant do grupo HEADER PARAMETERS da seção “Consultar Vínculo”. Passa a considerar Iniciadores de pagamento
+- Endpoint “Consultar Vínculo(PSP iniciador)” deprecado
+- Inclusão de 3 casas decimais na precisão dos campos de data nos XML’s de exemplo de respostas na API
+- Melhoria nos textos descritivos das seções “Receber Relato de Infração” e “Fechar Relato de Infração”
+- Políticas de usuário final passam a descontar 20 fichas para consultas inválidas
+- Baldes de consultas para participantes das categorias A e B passam a ter reposição de fichas de 12.000/min e 8.000/min
+- Baldes de usuários PF passam a ter 100 fichas para cada tipo de balde e usuários PJ 1.000 fichas para cada tipo de balde
+
+### Removido
+-	Removidas políticas de limitação ENTRIES_READ_PARTICIPANT_INITIATOR e ENTRIES_READ_USER_INITIATOR;
+
+## [1.7.2] - 2022-02-03
+### Alterado
+- Ajuste no texto das regras de contagem das políticas de baldes para considerar ordens de pagamento 
+- Inclusão do tamanho máximo da lista de chaves no CheckKeysRequest
+- Restrição no formato de chave EMAIL para não permitir caractere '%'
+- Eliminação do erro 404 do endpoint de consulta de estatísticas
+
 ## [1.7.1] - 2021-11-16
 ### Adicionado
 - Novo tipo de contador em estatísticas para transações rejeitadas: REJECTED
